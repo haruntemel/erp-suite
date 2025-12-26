@@ -1,0 +1,15 @@
+# .NET build klasörleri
+bin/
+obj/
+
+# VS Code ayarları
+.vscode/
+
+# Node.js (React) için
+node_modules/
+
+# Ortam dosyaları
+.env
+
+# Docker
+*.log
