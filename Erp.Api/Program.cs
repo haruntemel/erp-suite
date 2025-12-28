@@ -5,12 +5,15 @@ using Microsoft.OData.ModelBuilder;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using EFCore.NamingConventions;
+using BCrypt.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // 🔹 EF Core PostgreSQL
 builder.Services.AddDbContext<ErpDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .UseSnakeCaseNamingConvention());
 
 // 🔹 CORS (React dev server için)
 builder.Services.AddCors(options =>
@@ -24,6 +27,8 @@ builder.Services.AddCors(options =>
 // 🔹 OData EDM Model
 var edmBuilder = new ODataConventionModelBuilder();
 edmBuilder.EntitySet<Erp.Api.Models.Product>("Products");
+var hash = BCrypt.Net.BCrypt.HashPassword("12345");
+        Console.WriteLine(hash);
 
 // 🔹 JWT
 var jwt = builder.Configuration.GetSection("Jwt");
@@ -57,6 +62,12 @@ builder.Services.AddControllers()
     });
 
 var app = builder.Build();
+
+// --- HASH TEST (geçici) ---
+string testHash = "$2a$06$srF3e0A2XlstDHs1UV7fv.eLokrDackLXYWM2HDQ6Z4rgIhKIC05y";
+bool isValid = BCrypt.Net.BCrypt.Verify("12345", testHash);
+Console.WriteLine("12345 doğrulandı mı? " + isValid);
+// --- HASH TEST SON ---
 
 app.UseCors("FrontendDev");
 app.UseRouting();

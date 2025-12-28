@@ -21,35 +21,29 @@ namespace Erp.Api.Data
             {
                 e.ToTable("products");
                 e.HasKey(x => x.Id);
+                e.Property(x => x.Id).HasColumnName("id");
                 e.Property(x => x.Code).HasMaxLength(64).IsRequired();
                 e.HasIndex(x => x.Code).IsUnique();
                 e.Property(x => x.Name).HasMaxLength(256).IsRequired();
                 e.Property(x => x.Price).HasColumnType("numeric(18,2)");
             });
 
-           // User mapping
-modelBuilder.Entity<User>(e =>
-{
-    e.ToTable("users");
-    e.HasKey(x => x.Id);
-    e.Property(x => x.Username).HasMaxLength(100).IsRequired();
-    e.Property(x => x.PasswordHash).HasColumnName("password_hash").IsRequired();
-    e.Property(x => x.RoleId).HasColumnName("role_id");
-    e.Property(x => x.Status).HasColumnName("status");
+            // User mapping
 
-    // 🔹 İlişki (Role sadece id ve name içeriyor)
-    e.HasOne(x => x.Role)
-     .WithMany() // ters navigasyon yok
-     .HasForeignKey(x => x.RoleId)
-     .OnDelete(DeleteBehavior.Restrict);
-});
+
+modelBuilder.Entity<User>()
+    .HasOne(u => u.Role)
+    .WithMany()
+    .HasForeignKey(u => u.RoleId);
+
 
             // Role mapping
             modelBuilder.Entity<Role>(e =>
             {
                 e.ToTable("roles");
                 e.HasKey(x => x.Id);
-                e.Property(x => x.Name).HasMaxLength(50).IsRequired();
+                e.Property(x => x.Id).HasColumnName("id");
+                e.Property(x => x.Name).HasColumnName("name").HasMaxLength(50).IsRequired();
             });
 
             // Permission mapping
@@ -57,9 +51,10 @@ modelBuilder.Entity<User>(e =>
             {
                 e.ToTable("permissions");
                 e.HasKey(x => x.Id);
-                e.Property(x => x.Module).HasMaxLength(50);
-                e.Property(x => x.Page).HasMaxLength(50);
-                e.Property(x => x.Action).HasMaxLength(50);
+                e.Property(x => x.Id).HasColumnName("id");
+                e.Property(x => x.Module).HasColumnName("module").HasMaxLength(50);
+                e.Property(x => x.Page).HasColumnName("page").HasMaxLength(50);
+                e.Property(x => x.Action).HasColumnName("action").HasMaxLength(50);
             });
 
             // RolePermission mapping

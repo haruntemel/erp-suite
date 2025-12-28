@@ -18,12 +18,21 @@ namespace Erp.Api.Controllers
             _context = context;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetUsers()
-        {
-            var users = await _context.Users.Include(u => u.Role).ToListAsync();
-            return Ok(users);
-        }
+[HttpGet]
+public async Task<IActionResult> GetUsers()
+{
+    var users = await _context.Users.ToListAsync();
+
+    var result = users.Select(u => new {
+        u.Id,
+        u.Username,
+        roleId = u.RoleId,
+        status = u.Status
+    });
+
+    return Ok(result);
+}
+
 
         [HttpPost("create")]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
