@@ -1,31 +1,17 @@
 import { NavLink } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { FolderIcon, FolderOpenIcon } from "@heroicons/react/24/outline";
+import permissions from "../config/permissions.json"; // 👈 JSON’dan çekiyoruz
 
-const modules = [
-  {
-    path: "/sales",
-    label: "Satış",
-    children: [
-      { path: "/sales/orders", label: "Satış Siparişi" },
-      { path: "/sales/quotes", label: "Teklifler" },
-    ],
-  },
-  {
-    path: "/invent",
-    label: "Stok",
-    children: [
-      { path: "/invent/warehouse", label: "Depo Yönetimi" },
-    ],
-  },
-  {
-    path: "/fin",
-    label: "Finans",
-    children: [
-      { path: "/fin/invoices", label: "Fatura" },
-    ],
-  },
-];
+// JSON’dan modülleri dönüştür
+const modules = Object.entries(permissions.modules).map(([key, mod]) => ({
+  path: `/${key}`,
+  label: mod.label,
+  children: Object.entries(mod.pages).map(([pageKey, page]) => ({
+    path: `/${key}/${pageKey}`,
+    label: page.label,
+  })),
+}));
 
 export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [query, setQuery] = useState("");
@@ -37,7 +23,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
     );
   };
 
-  // 🔹 Arama sırasında ilgili modülleri otomatik aç
+  // Arama sırasında ilgili modülleri otomatik aç
   useEffect(() => {
     if (query) {
       const matchedParents = modules

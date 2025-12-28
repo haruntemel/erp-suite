@@ -1,0 +1,22 @@
+Folder PATH listing
+Volume serial number is 30E9-7A2D
+C:.
++---Erp.Api
+|   +---bin
+|   +---Controller
+|   +---Data
+|   +---erp-ui
+|   |   +---node_modules
+|   |   +---public
+|   |   \---src
+|   |       +---assets
+|   |       +---components
+|   |       +---config
+|   |       +---hooks
+|   |       +---layout
+|   |       +---modules
+
+|   +---Migrations
+|   +---Models
+|   +---obj
+
