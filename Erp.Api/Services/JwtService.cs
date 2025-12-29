@@ -41,13 +41,14 @@ namespace Erp.Api.Services
                 
                 // Claims oluştur
                 var claims = new[]
-                {
-                    new Claim(JwtRegisteredClaimNames.Sub, user.Username),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim("userId", user.Id.ToString()),
-                    new Claim("username", user.Username),
-                    new Claim("roleId", user.RoleId?.ToString() ?? "0")
-                };
+{
+    new Claim(JwtRegisteredClaimNames.Sub, user.Username),
+    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+    new Claim("userId", user.Id.ToString()),
+    new Claim("username", user.Username),
+    new Claim("roleId", user.RoleId?.ToString() ?? "0"),
+    new Claim("role", user.Role?.Name ?? "admin") 
+};
                 
                 // Token oluştur
                 var token = new JwtSecurityToken(

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
-using System.Linq;
 
 public class PermissionService
 {
@@ -13,31 +12,40 @@ public class PermissionService
 
     public bool HasPermission(string role, string module, string page, string action)
     {
+        // Admin her şeye erişebilir
+        if (role == "admin") return true;
+
         var permissions = _config.GetSection("modules").Get<Dictionary<string, Module>>();
-        if (!permissions.ContainsKey(module)) return false;
+        if (permissions == null || !permissions.ContainsKey(module))
+            return false;
 
         var pages = permissions[module].Pages;
-        if (!pages.ContainsKey(page)) return false;
+        if (pages == null || !pages.ContainsKey(page))
+            return false;
 
-        return pages[page].Actions.Contains(action) && RoleHasAccess(role, module, page, action);
+        var actions = pages[page].Actions;
+        if (actions == null)
+            return false;
+
+        return actions.Contains(action) && RoleHasAccess(role, module, page, action);
     }
 
     private bool RoleHasAccess(string role, string module, string page, string action)
     {
         // Burada DB'den role-permission eşleşmesi kontrol edilir
-        // Örn: IK rolü payroll tablosuna erişebilir, admin erişemez
+        // Örn: IK rolü payroll tablosuna erişebilir
         return true;
     }
 }
 
 public class Module
 {
-    public string Label { get; set; }
-    public Dictionary<string, Page> Pages { get; set; }
+    public string Label { get; set; } = string.Empty;
+    public Dictionary<string, Page> Pages { get; set; } = new Dictionary<string, Page>();
 }
 
 public class Page
 {
-    public string Label { get; set; }
-    public List<string> Actions { get; set; }
+    public string Label { get; set; } = string.Empty;
+    public List<string> Actions { get; set; } = new List<string>();
 }
