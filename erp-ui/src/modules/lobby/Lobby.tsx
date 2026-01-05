@@ -1,83 +1,239 @@
-import { useState, useEffect } from "react";
-import api from "../../api";
+import { useEffect, useRef } from 'react';
 
-export default function Lobby() {
-  const [apiTest, setApiTest] = useState<{ status: string; message?: string } | null>(null);
-  const [loading, setLoading] = useState(false);
+const Lobby = () => {
+  const retryBtnRef = useRef<HTMLButtonElement>(null);
+  const refreshBtnRef = useRef<HTMLButtonElement>(null);
+  const metricValueRef = useRef<HTMLDivElement>(null);
+  const secondMetricValueRef = useRef<HTMLDivElement>(null);
 
-  const testBackendConnection = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get("/auth/verify");
-      setApiTest({ status: "success", message: "Backend connection OK!" });
-      console.log("✅ Backend test successful:", response.data);
-    } catch (error: any) {
-      setApiTest({ 
-        status: "error", 
-        message: error.response?.data?.message || error.message 
-      });
-      console.error("❌ Backend test failed:", error);
-    } finally {
-      setLoading(false);
+  const handleTestConnection = () => {
+    const btn = retryBtnRef.current;
+    if (btn) {
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        const success = Math.random() > 0.3;
+
+        if (success) {
+          btn.innerHTML = '<i class="fas fa-check"></i> Connected!';
+          btn.style.background = 'linear-gradient(135deg, #10b981 0%, #047857 100%)';
+        } else {
+          btn.innerHTML = '<i class="fas fa-times"></i> Failed';
+          btn.style.background = 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)';
+        }
+
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          btn.style.background = '';
+        }, 2000);
+      }, 1500);
+    }
+  };
+
+  const handleRefreshData = () => {
+    const btn = refreshBtnRef.current;
+    if (btn) {
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        // Update metrics
+        if (metricValueRef.current) {
+          metricValueRef.current.textContent = `${Math.floor(Math.random() * 1000) + 3500} kt`;
+        }
+
+        // Update time
+        const now = new Date();
+        const timeStr = now.getHours() + 'k' + now.getMinutes();
+        if (secondMetricValueRef.current) {
+          secondMetricValueRef.current.textContent = timeStr;
+        }
+
+        btn.innerHTML = '<i class="fas fa-check"></i> Data Updated';
+        btn.style.background = 'linear-gradient(135deg, #10b981 0%, #047857 100%)';
+
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          btn.style.background = '';
+        }, 1500);
+      }, 1200);
     }
   };
 
   useEffect(() => {
-    // Sayfa yüklendiğinde backend'i test et
-    testBackendConnection();
+    const retryBtn = retryBtnRef.current;
+    const refreshBtn = refreshBtnRef.current;
+
+    if (retryBtn) retryBtn.addEventListener('click', handleTestConnection);
+    if (refreshBtn) refreshBtn.addEventListener('click', handleRefreshData);
+
+    return () => {
+      if (retryBtn) retryBtn.removeEventListener('click', handleTestConnection);
+      if (refreshBtn) refreshBtn.removeEventListener('click', handleRefreshData);
+    };
   }, []);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">Hoşgeldiniz 👋</h2>
-      
-      {/* Backend Connection Test */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
-        <h3 className="font-semibold text-gray-700 mb-2">Backend Connection Test</h3>
-        {apiTest ? (
-          <div className={`p-3 rounded ${apiTest.status === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-            <strong>{apiTest.status === 'success' ? '✅' : '❌'} {apiTest.status.toUpperCase()}:</strong> {apiTest.message}
+    <div className="lobby-content">
+      <div className="dashboard-grid">
+        {/* Backend Connection Test Card */}
+        <div className="card">
+          <div className="card-header">
+            <div className="card-icon">
+              <i className="fas fa-server"></i>
+            </div>
+            <h2 className="card-title">Backend Connection Test</h2>
           </div>
-        ) : (
-          <div className="text-gray-500">Testing connection...</div>
-        )}
-        <button 
-          onClick={testBackendConnection}
-          disabled={loading}
-          className="mt-3 px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
-        >
-          {loading ? "Testing..." : "Test Again"}
+
+          <div className="status-message">
+            <strong>DMCX 2020.</strong> Connection established connected to expanding memory.
+          </div>
+
+          <div className="status-message">
+            Any client (both hosts, mobile arrays) per of remotely masks.
+          </div>
+
+          <button className="btn btn-retry" ref={retryBtnRef}>
+            <i className="fas fa-sync-alt"></i>
+            Test Connection
+          </button>
+        </div>
+
+        {/* Data Base Card */}
+        <div className="card">
+          <div className="card-header">
+            <div className="card-icon">
+              <i className="fas fa-database"></i>
+            </div>
+            <h2 className="card-title">Data Base</h2>
+          </div>
+
+          <div className="list-item">
+            <div className="list-icon memory">
+              <i className="fas fa-memory"></i>
+            </div>
+            <div>
+              <div>Memory</div>
+              <div className="metric-label">Version: 2.0x</div>
+            </div>
+          </div>
+
+          <div className="list-item">
+            <div className="list-icon flow">
+              <i className="fas fa-stream"></i>
+            </div>
+            <div>
+              <div>Flow Checker</div>
+              <div className="metric-label">List: available spot</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Axe Monitor Card */}
+        <div className="card">
+          <div className="card-header">
+            <div className="card-icon">
+              <i className="fas fa-desktop"></i>
+            </div>
+            <h2 className="card-title">Axe Monitor</h2>
+          </div>
+
+          <div className="list-item">
+            <div className="list-icon intel">
+              <i className="fab fa-intel"></i>
+            </div>
+            <div>
+              <div>Intel Core i5G(R)</div>
+              <div className="metric-label">Active X 3.0 (TS)</div>
+            </div>
+          </div>
+
+          <div className="list-item">
+            <div className="list-icon memory">
+              <i className="fas fa-hdd"></i>
+            </div>
+            <div>
+              <div>Disk Status</div>
+              <div className="metric-label">Memory: Version: 2.0x</div>
+            </div>
+          </div>
+
+          <div className="list-item">
+            <div className="list-icon flow">
+              <i className="fas fa-filter"></i>
+            </div>
+            <div>
+              <div>Flow Checker</div>
+              <div className="metric-label">List: available spot</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Axe Allofolder Card */}
+        <div className="card">
+          <div className="card-header">
+            <div className="card-icon">
+              <i className="fas fa-folder-open"></i>
+            </div>
+            <h2 className="card-title">Axe Allofolder</h2>
+          </div>
+
+          <div className="list-item">
+            <div>
+              <div>Only reads</div>
+              <div className="metric-value" ref={metricValueRef}>3987 kt</div>
+              <div className="metric-label">Storage code(s)</div>
+            </div>
+          </div>
+
+          <div className="list-item">
+            <div>
+              <div>Token identity</div>
+              <div className="metric-value" ref={secondMetricValueRef}>21k42</div>
+              <div className="metric-label">Last updated: 10k4</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Debug Info Section */}
+      <div className="debug-info">
+        <div className="card-header">
+          <div className="card-icon">
+            <i className="fas fa-bug"></i>
+          </div>
+          <h2 className="card-title">Debug Info</h2>
+        </div>
+
+        <table className="debug-table">
+          <tbody>
+            <tr>
+              <td className="debug-label">Name</td>
+              <td><div className="debug-value">/ name</div></td>
+            </tr>
+            <tr>
+              <td className="debug-label">User</td>
+              <td><div className="debug-value">/ status</div></td>
+            </tr>
+            <tr>
+              <td className="debug-label">Backend URL</td>
+              <td><div className="debug-value url-value">http://localhost:1928</div></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <button className="btn" ref={refreshBtnRef} style={{ marginTop: '20px' }}>
+          <i className="fas fa-redo"></i>
+          Refresh All Data
         </button>
-      </div>
-      
-      <p className="text-gray-600 mb-6">Ana ekran (lobi) burası, modül seçmek için sol menüyü kullanın.</p>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-          <h4 className="font-semibold text-blue-800 mb-2">Hızlı İşlemler</h4>
-          <ul className="space-y-1 text-sm text-blue-600">
-            <li>• Yeni Satış Siparişi</li>
-            <li>• Stok Ekleme</li>
-            <li>• Fatura Oluştur</li>
-          </ul>
-        </div>
-        
-        <div className="p-4 bg-green-50 rounded-lg border border-green-100">
-          <h4 className="font-semibold text-green-800 mb-2">Son Aktiviteler</h4>
-          <ul className="space-y-1 text-sm text-green-600">
-            <li>• Giriş yapıldı: {new Date().toLocaleTimeString()}</li>
-            <li>• Token durumu: {localStorage.getItem('token') ? '✅ Aktif' : '❌ Yok'}</li>
-          </ul>
-        </div>
-      </div>
-      
-      {/* Debug Info */}
-      <div className="mt-6 p-3 bg-gray-100 rounded text-xs text-gray-600">
-        <p><strong>Debug Info:</strong></p>
-        <p>Token: {localStorage.getItem('token') ? '✓ Present' : '✗ Missing'}</p>
-        <p>User: {localStorage.getItem('user') ? '✓ Loaded' : '✗ Not found'}</p>
-        <p>Backend URL: http://localhost:5217</p>
       </div>
     </div>
   );
-}
+};
+
+export default Lobby;

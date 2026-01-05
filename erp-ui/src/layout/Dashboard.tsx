@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
-import api from '../services/api';
+import api from '../api'; // doğru path olmalı
+
+useEffect(() => {
+  api.get("/dashboard/stats").then(res => {
+    console.log(res.data);
+  });
+}, []);
 
 interface DashboardStats {
   totalProducts: number;

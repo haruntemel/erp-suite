@@ -1,24 +1,26 @@
-import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import type { ReactNode } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 
-interface ProtectedRouteProps {
+interface Props {
   children: ReactNode;
+  roles?: string[]; // erişime izin verilen roller
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  // Token kontrolü
-  const token = localStorage.getItem('token');
-  
-  // DEBUG: Console'a yaz
-  console.log('🔐 ProtectedRoute - Token check:', token ? '✓ EXISTS' : '✗ MISSING');
-  
-  // Token yoksa login sayfasına yönlendir
+export default function ProtectedRoute({ children, roles }: Props) {
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const location = useLocation();
+
+  // Token yoksa login'e yönlendir
   if (!token) {
-    console.warn('⚠️ No token found, redirecting to /login');
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
-  
-  // Token varsa içeriği göster
-  console.log('✅ Access granted, rendering children');
-  return <>{children}</>;
+
+  // Roller verilmişse ve kullanıcı rolü bu listede değilse yetkisiz sayfasına yönlendir
+  if (roles && !roles.includes(String(user.role).toLowerCase())) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Erişim serbest
+  return children;
 }

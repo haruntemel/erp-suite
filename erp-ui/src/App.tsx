@@ -11,13 +11,16 @@ import SalesQuotes from "./modules/sales/SalesQuotes";
 import Warehouse from "./modules/invent/Warehouse";
 import Invoices from "./modules/fin/Invoices";
 
-// 🔹 Yeni User modülü
+// 🔹 User modülü
 import UsersHome from "./modules/user/UsersHome";
-import UsersPage from "./modules/user/UsersPage";
 
 // 🔹 Login ve koruma
 import LoginForm from "./modules/auth/LoginForm";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import CreateUserForm from "./modules/user/CreateUserForm";
+
+// 🔹 Yetkisiz sayfa
+//import Unauthorized from "./modules/auth/Unauthorized";
 
 export default function App() {
   return (
@@ -25,7 +28,10 @@ export default function App() {
       {/* Login ekranı */}
       <Route path="/login" element={<LoginForm />} />
 
-      {/* Tüm modüller ProtectedRoute içinde */}
+      {/* Yetkisiz erişim */}
+       {/* <Route path="/unauthorized" element={<Unauthorized />} />*/}
+
+      {/* Tüm modüller ProtectedRoute içinde (login zorunlu) */}
       <Route
         element={
           <ProtectedRoute>
@@ -47,7 +53,8 @@ export default function App() {
         <Route path="/sales/quotes" element={<SalesQuotes />} />
         <Route path="/invent/warehouse" element={<Warehouse />} />
         <Route path="/fin/invoices" element={<Invoices />} />
-        <Route path="/user/users" element={<UsersPage />} />
+        <Route path="/user/users" element={<CreateUserForm />} />
+        
       </Route>
     </Routes>
   );

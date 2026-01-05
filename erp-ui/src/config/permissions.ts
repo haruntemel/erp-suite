@@ -1,0 +1,32 @@
+// src/config/permissions.ts
+const permissions = {
+  modules: {
+    sales: {
+      label: "Satış",
+      pages: {
+        orders: { label: "Satış Siparişi", actions: ["view", "create", "edit"] },
+        quotes: { label: "Satış Teklifi", actions: ["view", "create"] }
+      }
+    },
+    invent: {
+      label: "Stok",
+      pages: {
+        warehouse: { label: "Depo Yönetimi", actions: ["view", "edit"] }
+      }
+    },
+    fin: {
+      label: "Finans",
+      pages: {
+        invoices: { label: "Fatura", actions: ["view", "create", "edit"] }
+      }
+    },
+    user: {
+      label: "Kullanıcı",
+      pages: {
+        users: { label: "Kullanıcılar", actions: ["view", "create", "edit", "delete"] }
+      }
+    }
+  }
+};
+
+export default permissions;

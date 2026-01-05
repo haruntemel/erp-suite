@@ -1,41 +1,52 @@
 import api from "../api";
 
+// Login fonksiyonu
 export async function login(username: string, password: string) {
-  console.log(`🔐 Login attempt for user: ${username}`);
-  
   try {
-    const response = await api.post("/auth/login", { 
-      username, 
-      password 
-    });
-    
-    console.log('✅ Login successful, token received');
-    return response.data; // { token, user }
-  } catch (error: any) {
-    console.error('❌ Login failed:', error.response?.data || error.message);
-    
-    // Kullanıcı dostu hata mesajları
-    if (error.response?.status === 401) {
-      throw new Error("Kullanıcı adı veya şifre hatalı");
-    } else if (error.message.includes('Network Error')) {
-      throw new Error("Sunucuya bağlanılamıyor. Backend çalışıyor mu?");
-    } else {
-      throw new Error("Giriş yapılamadı");
-    }
+    const response = await api.post("/auth/login", { username, password });
+    return response.data;
+  } catch (error) {
+    console.error("Login error:", error);
+    throw error;
   }
 }
 
-export function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  window.location.href = "/login";
+// 🔥 KESİN ÇALIŞAN LOGOUT FONKSİYONU
+export function logout(): void {
+  try {
+    // Tüm auth verilerini temizle
+    localStorage.clear(); // Tüm localStorage'ı temizler
+    
+    // Alternatif: Sadece auth ile ilgili olanları temizle
+    // localStorage.removeItem("token");
+    // localStorage.removeItem("user");
+    // sessionStorage.clear();
+    
+    console.log("✅ Logout successful, redirecting to login...");
+    
+    // Login sayfasına yönlendir
+    window.location.href = "/login";
+    
+    // Sayfanın cache'lenmemesi için
+    window.location.replace("/login");
+    
+  } catch (error) {
+    console.error("Logout error:", error);
+    // Yine de login sayfasına git
+    window.location.href = "/login";
+  }
 }
 
+// Diğer fonksiyonlar...
 export function getToken() {
   return localStorage.getItem("token");
 }
 
 export function getUser() {
   const userStr = localStorage.getItem("user");
-  return userStr ? JSON.parse(userStr) : null;
+  try {
+    return userStr ? JSON.parse(userStr) : null;
+  } catch {
+    return null;
+  }
 }

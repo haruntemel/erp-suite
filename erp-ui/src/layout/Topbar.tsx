@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { HomeIcon } from "@heroicons/react/24/outline";
+import { logout } from "../services/auth"; // ✅ logout fonksiyonunu import ediyoruz
 
 const pathLabels: Record<string, string> = {
   sales: "Satış",
@@ -17,6 +18,11 @@ export default function Topbar() {
 
   const segments = location.pathname.split("/").filter(Boolean);
   const breadcrumb = segments.map(seg => pathLabels[seg] || seg).join(" \\ ");
+
+  const handleLogout = () => {
+    // Basitçe logout fonksiyonunu çağır
+    logout();
+  };
 
   return (
     <header
@@ -38,10 +44,24 @@ export default function Topbar() {
         />
       </button>
 
-      {/* Sağda breadcrumb */}
+      {/* Ortada breadcrumb */}
       {segments.length > 0 && (
         <div className="text-gray-700 font-medium">{breadcrumb}</div>
       )}
+
+      {/* SAĞ TARAFTA OTOMATİK KAPATMA BUTONU */}
+      <button
+        onClick={handleLogout}
+        className="
+          m-2 p-2 
+          bg-red-600 text-white 
+          rounded hover:bg-red-700
+          text-sm font-medium
+          transition-colors duration-200
+        "
+      >
+        Çıkış Yap
+      </button>
     </header>
   );
 }

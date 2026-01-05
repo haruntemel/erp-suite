@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../api";
+import api from "../api";
 
 type Product = {
   id: string;
@@ -13,9 +13,9 @@ export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    api.get("/odata/Products?$top=10")
-      .then(res => setProducts(res.data.value))
-      .catch(err => console.error("API error:", err));
+    api.get("/products")
+  .then((res: { data: { value: Product[] } }) => setProducts(res.data.value))
+  .catch((err: unknown) => console.error("API error:", err));
   }, []);
 
   return (
