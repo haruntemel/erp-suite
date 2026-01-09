@@ -18,8 +18,25 @@ interface Company {
   rowkey?: string;
 }
 
-// GeneralTab bileşeni - SADECE DİĞER ALANLAR
-const GeneralTab = ({ selectedCompany }: { selectedCompany: Company | null }) => {
+interface CompanyUpdateDto {
+  name?: string;
+  associationNo?: string;
+  defaultLanguage?: string;
+  logotype?: string;
+  corporateForm?: string;
+  country?: string;
+  localizationCountry?: string;
+  rowversion: number;
+}
+
+// GeneralTab bileşeni
+const GeneralTab = ({ 
+  selectedCompany, 
+  onFormDataChange 
+}: { 
+  selectedCompany: Company | null;
+  onFormDataChange?: (formData: any) => void;
+}) => {
   const [formData, setFormData] = useState({
     default_language: selectedCompany?.default_language || "tr",
     logotype: selectedCompany?.logotype || "",
@@ -31,22 +48,31 @@ const GeneralTab = ({ selectedCompany }: { selectedCompany: Company | null }) =>
   // Seçili şirket değiştiğinde formData'yı güncelle
   useEffect(() => {
     if (selectedCompany) {
-      setFormData({
+      const newFormData = {
         default_language: selectedCompany.default_language || "tr",
         logotype: selectedCompany.logotype || "",
         corporate_form: selectedCompany.corporate_form || "",
         country: selectedCompany.country || "TR",
         localization_country: selectedCompany.localization_country || "TR"
-      });
+      };
+      setFormData(newFormData);
+      if (onFormDataChange) {
+        onFormDataChange(newFormData);
+      }
     }
-  }, [selectedCompany]);
+  }, [selectedCompany, onFormDataChange]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       [name]: value
-    }));
+    };
+    setFormData(newFormData);
+    
+    if (onFormDataChange) {
+      onFormDataChange(newFormData);
+    }
   };
 
   return (
@@ -249,7 +275,7 @@ const GeneralTab = ({ selectedCompany }: { selectedCompany: Company | null }) =>
   );
 };
 
-// AddressTab bileşeni - SABİT YÜKSEKLİK
+// AddressTab bileşeni
 const AddressTab = ({ selectedCompany }: { selectedCompany: Company | null }) => {
   return (
     <div style={{ padding: "15px 0", minHeight: "250px" }}>
@@ -319,54 +345,54 @@ export default function CompanyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // GeneralTab form verileri
+  const [generalTabFormData, setGeneralTabFormData] = useState<any>(null);
+
   // Düzenlenen şirket
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
 
   // PostgreSQL'den şirket verilerini çek
   useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        setLoading(true);
-        // API endpoint'inizi buraya girin
-        const response = await fetch('http://localhost:5217/api/company');
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // API'den gelen verileri uygulamamızın Company interface'ine uyarlayalım
-        const formattedCompanies: Company[] = data.map((company: any, index: number) => ({
-          id: index + 1, // API'den ID gelmiyorsa, index kullan
-          company: company.companyId || company.company || "",
-          name: company.name || "",
-          association_no: company.associationNo || company.association_no || "",
-          default_language: company.defaultLanguage || company.default_language || "tr",
-          logotype: company.logotype || "",
-          corporate_form: company.corporateForm || company.corporate_form || "",
-          country: company.country || "TR",
-          localization_country: company.localizationCountry || company.localization_country || "TR",
-          creation_date: company.creationDate || company.creation_date || "",
-          created_by: company.createdBy || company.created_by || "",
-          rowversion: company.rowversion || 1,
-          rowkey: company.rowkey || ""
-        }));
-        
-        setCompanies(formattedCompanies);
-        setError(null);
-      } catch (err) {
-        console.error("Şirket verileri çekilirken hata:", err);
-        setError(err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu");
-        // Eğer API çalışmıyorsa, boş liste göster
-        setCompanies([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCompanies();
   }, []);
+
+  const fetchCompanies = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5217/api/company');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      const formattedCompanies: Company[] = data.map((company: any, index: number) => ({
+        id: index + 1,
+        company: company.companyId || company.company || "",
+        name: company.name || "",
+        association_no: company.associationNo || company.association_no || "",
+        default_language: company.defaultLanguage || company.default_language || "tr",
+        logotype: company.logotype || "",
+        corporate_form: company.corporateForm || company.corporate_form || "",
+        country: company.country || "TR",
+        localization_country: company.localizationCountry || company.localization_country || "TR",
+        creation_date: company.creationDate || company.creation_date || "",
+        created_by: company.createdBy || company.created_by || "",
+        rowversion: company.rowversion || 1,
+        rowkey: company.rowkey || ""
+      }));
+      
+      setCompanies(formattedCompanies);
+      setError(null);
+    } catch (err) {
+      console.error("Şirket verileri çekilirken hata:", err);
+      setError(err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu");
+      setCompanies([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const searchListItems = companies.map(company => ({
     id: company.id,
@@ -380,6 +406,7 @@ export default function CompanyPage() {
     const selected = companies.find(c => c.id === item.id);
     if (selected) {
       setSelectedCompany(selected);
+      setEditingCompany(null);
     }
   };
 
@@ -391,33 +418,33 @@ export default function CompanyPage() {
   const handleDeleteCompany = async (id: number) => {
     if (window.confirm("Bu şirketi silmek istediğinize emin misiniz?")) {
       try {
-        // Silme işlemi için API çağrısı
         const companyToDelete = companies.find(c => c.id === id);
         if (!companyToDelete) return;
 
-        // DELETE isteği gönder
         const response = await fetch(`http://localhost:5217/api/company/${companyToDelete.company}`, {
           method: 'DELETE',
         });
 
         if (response.ok) {
-          // Başarılı olursa, state'i güncelle
-          setCompanies(companies.filter(company => company.id !== id));
+          await fetchCompanies();
+          
           if (selectedCompany?.id === id) {
             setSelectedCompany(null);
           }
+          
           alert("Şirket başarıyla silindi!");
         } else {
-          throw new Error("Silme işlemi başarısız oldu");
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Silme işlemi başarısız oldu");
         }
       } catch (err) {
         console.error("Şirket silinirken hata:", err);
-        alert("Şirket silinirken bir hata oluştu!");
+        alert(err instanceof Error ? err.message : "Şirket silinirken bir hata oluştu!");
       }
     }
   };
 
-  // Şirket düzenleme - SearchList'te seçilen şirketin düzenleme moduna alınması
+  // Şirket düzenleme
   const handleEditCompany = (company: Company) => {
     setEditingCompany({...company});
     setSelectedCompany(company);
@@ -428,42 +455,60 @@ export default function CompanyPage() {
     setEditingCompany({ ...editingCompany, [field]: value });
   };
 
+  // Şirket düzenleme kaydetme
   const handleSaveEdit = async () => {
     if (!editingCompany) return;
 
     try {
-      // Güncelleme işlemi için API çağrısı
+      const updateDto: CompanyUpdateDto = {
+        name: editingCompany.name,
+        associationNo: editingCompany.association_no,
+        defaultLanguage: editingCompany.default_language,
+        logotype: editingCompany.logotype,
+        corporateForm: editingCompany.corporate_form,
+        country: editingCompany.country,
+        localizationCountry: editingCompany.localization_country,
+        rowversion: editingCompany.rowversion || 1
+      };
+
       const response = await fetch(`http://localhost:5217/api/company/${editingCompany.company}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          companyId: editingCompany.company,
-          name: editingCompany.name,
-          associationNo: editingCompany.association_no,
-          defaultLanguage: editingCompany.default_language,
-          logotype: editingCompany.logotype,
-          corporateForm: editingCompany.corporate_form,
-          country: editingCompany.country,
-          localizationCountry: editingCompany.localization_country
-        }),
+        body: JSON.stringify(updateDto),
       });
 
       if (response.ok) {
-        // Başarılı olursa, state'i güncelle
-        setCompanies(companies.map(company => 
-          company.id === editingCompany.id ? editingCompany : company
-        ));
-        setSelectedCompany(editingCompany);
+        await fetchCompanies();
+        
+        const updatedCompany = await response.json();
+        const formattedCompany: Company = {
+          id: editingCompany.id,
+          company: updatedCompany.companyId || updatedCompany.company,
+          name: updatedCompany.name,
+          association_no: updatedCompany.associationNo,
+          default_language: updatedCompany.defaultLanguage,
+          logotype: updatedCompany.logotype,
+          corporate_form: updatedCompany.corporateForm,
+          country: updatedCompany.country,
+          localization_country: updatedCompany.localizationCountry,
+          creation_date: updatedCompany.creationDate,
+          created_by: updatedCompany.createdBy,
+          rowversion: updatedCompany.rowversion,
+          rowkey: updatedCompany.rowkey
+        };
+        
+        setSelectedCompany(formattedCompany);
         setEditingCompany(null);
-        alert("Değişiklikler kaydedildi!");
+        alert("Değişiklikler başarıyla kaydedildi!");
       } else {
-        throw new Error("Güncelleme işlemi başarısız oldu");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Güncelleme işlemi başarısız oldu");
       }
     } catch (err) {
       console.error("Şirket güncellenirken hata:", err);
-      alert("Değişiklikler kaydedilirken bir hata oluştu!");
+      alert(err instanceof Error ? err.message : "Değişiklikler kaydedilirken bir hata oluştu!");
     }
   };
 
@@ -471,39 +516,59 @@ export default function CompanyPage() {
     setEditingCompany(null);
   };
 
-  // Ana kaydet butonu - GeneralTab bilgilerini kaydet
+  // General tab için kaydetme
   const handleSave = async () => {
     if (!selectedCompany) {
       alert("Lütfen önce bir şirket seçin!");
       return;
     }
 
+    if (!generalTabFormData) {
+      alert("Değişiklik yapılmadı!");
+      return;
+    }
+
     try {
-      // General tab'deki değişiklikleri kaydetmek için API çağrısı
+      const updateDto: CompanyUpdateDto = {
+        defaultLanguage: generalTabFormData.default_language,
+        logotype: generalTabFormData.logotype,
+        corporateForm: generalTabFormData.corporate_form,
+        country: generalTabFormData.country,
+        localizationCountry: generalTabFormData.localization_country,
+        rowversion: selectedCompany.rowversion || 1
+      };
+
       const response = await fetch(`http://localhost:5217/api/company/${selectedCompany.company}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          companyId: selectedCompany.company,
-          defaultLanguage: selectedCompany.default_language,
-          logotype: selectedCompany.logotype,
-          corporateForm: selectedCompany.corporate_form,
-          country: selectedCompany.country,
-          localizationCountry: selectedCompany.localization_country
-        }),
+        body: JSON.stringify(updateDto),
       });
 
       if (response.ok) {
-        console.log("Değişiklikler kaydedildi:", selectedCompany);
-        alert("Değişiklikler kaydedildi!");
+        await fetchCompanies();
+        
+        const updatedCompany = await response.json();
+        const formattedCompany: Company = {
+          ...selectedCompany,
+          default_language: updatedCompany.defaultLanguage || selectedCompany.default_language,
+          logotype: updatedCompany.logotype || selectedCompany.logotype,
+          corporate_form: updatedCompany.corporateForm || selectedCompany.corporate_form,
+          country: updatedCompany.country || selectedCompany.country,
+          localization_country: updatedCompany.localizationCountry || selectedCompany.localization_country,
+          rowversion: updatedCompany.rowversion || selectedCompany.rowversion
+        };
+        
+        setSelectedCompany(formattedCompany);
+        alert("Değişiklikler başarıyla kaydedildi!");
       } else {
-        throw new Error("Kaydetme işlemi başarısız oldu");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Kaydetme işlemi başarısız oldu");
       }
     } catch (err) {
       console.error("Değişiklikler kaydedilirken hata:", err);
-      alert("Değişiklikler kaydedilirken bir hata oluştu!");
+      alert(err instanceof Error ? err.message : "Değişiklikler kaydedilirken bir hata oluştu!");
     }
   };
 
@@ -1076,7 +1141,12 @@ export default function CompanyPage() {
 
           {/* Tab Content - SABİT YÜKSEKLİK */}
           <div style={{ minHeight: "300px" }}>
-            {activeTab === "General" && <GeneralTab selectedCompany={selectedCompany} />}
+            {activeTab === "General" && (
+              <GeneralTab 
+                selectedCompany={selectedCompany} 
+                onFormDataChange={setGeneralTabFormData}
+              />
+            )}
             {activeTab === "Address" && <AddressTab selectedCompany={selectedCompany} />}
           </div>
         </div>
