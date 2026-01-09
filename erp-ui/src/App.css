@@ -1099,3 +1099,111 @@ body.sidebar-collapsed .main-content {
 .save-btn:hover {
   background: linear-gradient(135deg, #0284c7 0%, #075985 100%);
 }
+
+
+
+
+
+/* SearchList Panel Fixed Position */
+.search-list-panel {
+  position: fixed !important;
+  left: 280px !important; /* Sidebar'ın yanı */
+  top: 70px !important; /* Topbar'ın altı */
+  height: calc(100vh - 70px) !important;
+  z-index: 100 !important;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+  transition: width 0.3s ease, left 0.3s ease !important;
+}
+
+/* Sidebar collapsed durumu */
+body.sidebar-collapsed .search-list-panel {
+  left: 80px !important; /* Collapsed sidebar genişliği */
+}
+
+/* Main Content Dynamic Margin */
+.main-content.with-searchlist {
+  margin-left: calc(var(--sidebar-width) + 320px) !important;
+  transition: margin-left 0.3s ease !important;
+}
+
+body.sidebar-collapsed .main-content.with-searchlist {
+  margin-left: calc(var(--sidebar-collapsed) + 320px) !important;
+}
+
+/* SearchList kapalıyken */
+.main-content.without-searchlist {
+  margin-left: var(--sidebar-width) !important;
+}
+
+body.sidebar-collapsed .main-content.without-searchlist {
+  margin-left: var(--sidebar-collapsed) !important;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1200px) {
+  .search-list-panel {
+    width: 280px !important;
+  }
+  
+  .main-content.with-searchlist {
+    margin-left: calc(var(--sidebar-width) + 280px) !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .search-list-panel {
+    width: 100% !important;
+    max-width: 320px;
+    left: 0 !important;
+  }
+  
+  .main-content.with-searchlist {
+    margin-left: 320px !important;
+  }
+  
+  body.sidebar-collapsed .main-content.with-searchlist {
+    margin-left: 320px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-list-panel {
+    width: 100% !important;
+    max-width: 100%;
+  }
+  
+  .search-list-panel:not(.open) {
+    width: 40px !important;
+  }
+  
+  .main-content.with-searchlist {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* Topbar'a yakınlık için */
+.main-content {
+  padding-top: 1px !important;
+  padding-bottom: 1px !important;
+}
+
+/* Card'ları daha kompakt yap */
+.card {
+  margin-bottom: 15px !important;
+  padding: 20px !important;
+}
+
+.card-header {
+  padding-bottom: 12px !important;
+  margin-bottom: 15px !important;
+}
+
+/* Tablo compact */
+.debug-table {
+  font-size: 0.85rem !important;
+}
+
+.debug-table td {
+  padding: 10px 12px !important;
+}

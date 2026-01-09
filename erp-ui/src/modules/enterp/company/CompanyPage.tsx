@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState } from "react";
+import SearchList from "../../../components/SearchList";
+import { ChevronRightIcon } from "@heroicons/react/24/outline";
 
 interface Company {
+  id: number;
   company: string;
   name: string;
   association_no?: string;
@@ -12,17 +14,27 @@ interface Company {
   localization_country: string;
 }
 
-// GeneralTab bileşeni
-const GeneralTab = () => {
+// GeneralTab bileşeni - SADECE DİĞER ALANLAR
+const GeneralTab = ({ selectedCompany }: { selectedCompany: Company | null }) => {
   const [formData, setFormData] = useState({
-    company: "COMP001",
-    name: "Demo Şirket A.Ş.",
-    association_no: "1234567890",
-    default_language: "tr",
-    logotype: "company-logo.png",
-    corporate_form: "as",
-    country: "TR",
-    localization_country: "TR"
+    default_language: selectedCompany?.default_language || "tr",
+    logotype: selectedCompany?.logotype || "",
+    corporate_form: selectedCompany?.corporate_form || "",
+    country: selectedCompany?.country || "TR",
+    localization_country: selectedCompany?.localization_country || "TR"
+  });
+
+  // Seçili şirket değiştiğinde formData'yı güncelle
+  useState(() => {
+    if (selectedCompany) {
+      setFormData({
+        default_language: selectedCompany.default_language || "tr",
+        logotype: selectedCompany.logotype || "",
+        corporate_form: selectedCompany.corporate_form || "",
+        country: selectedCompany.country || "TR",
+        localization_country: selectedCompany.localization_country || "TR"
+      });
+    }
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -34,235 +46,257 @@ const GeneralTab = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="form-grid">
-        {/* Sol Kolon */}
-        <div className="form-column">
-          <div className="form-group">
-            <label className="form-label">Company Code</label>
-            <input
-              type="text"
-              name="company"
-              value={formData.company}
-              onChange={handleInputChange}
-              className="form-input"
-              placeholder="COMP001"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Company Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              className="form-input"
-              placeholder="Şirket Adı"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Association No</label>
-            <input
-              type="text"
-              name="association_no"
-              value={formData.association_no}
-              onChange={handleInputChange}
-              className="form-input"
-              placeholder="1234567890"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Default Language</label>
-            <select
-              name="default_language"
-              value={formData.default_language}
-              onChange={handleInputChange}
-              className="form-select"
-            >
-              <option value="tr">Türkçe</option>
-              <option value="en">English</option>
-              <option value="de">Deutsch</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Sağ Kolon */}
-        <div className="form-column">
-          <div className="form-group">
-            <label className="form-label">Corporate Form</label>
-            <select
-              name="corporate_form"
-              value={formData.corporate_form}
-              onChange={handleInputChange}
-              className="form-select"
-            >
-              <option value="">Select</option>
-              <option value="as">Anonim Şirket</option>
-              <option value="ltd">Limited Şirket</option>
-              <option value="koop">Kooperatif</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Country</label>
-            <select
-              name="country"
-              value={formData.country}
-              onChange={handleInputChange}
-              className="form-select"
-            >
-              <option value="TR">Türkiye</option>
-              <option value="DE">Almanya</option>
-              <option value="US">ABD</option>
-              <option value="GB">İngiltere</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Localization Country</label>
-            <select
-              name="localization_country"
-              value={formData.localization_country}
-              onChange={handleInputChange}
-              className="form-select"
-            >
-              <option value="TR">Türkiye</option>
-              <option value="DE">Almanya</option>
-              <option value="US">ABD</option>
-              <option value="GB">İngiltere</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Logotype</label>
-            <div className="upload-group">
-              <input
-                type="text"
-                name="logotype"
-                value={formData.logotype}
-                onChange={handleInputChange}
-                className="form-input"
-                placeholder="logo.png"
-              />
-              <button className="upload-btn">
-                <i className="fas fa-upload"></i>
-                <span>Upload</span>
-              </button>
+    <div style={{ padding: "15px 0", minHeight: "250px" }}>
+      <div style={{ 
+        display: "grid", 
+        gridTemplateColumns: "1fr", 
+        gap: "15px" 
+      }}>
+        {selectedCompany ? (
+          <>
+            {/* İlk Satır */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Default Language</label>
+                <select
+                  name="default_language"
+                  value={formData.default_language}
+                  onChange={handleInputChange}
+                  style={{
+                    padding: "10px",
+                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                    border: "1px solid #334155",
+                    borderRadius: "6px",
+                    color: "#f1f5f9",
+                    fontSize: "0.9rem"
+                  }}
+                >
+                  <option value="tr">Turkish</option>
+                  <option value="en">English</option>
+                  <option value="de">German</option>
+                  <option value="fr">French</option>
+                  <option value="es">Spanish</option>
+                  <option value="ar">Arabic</option>
+                </select>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Corporate Form</label>
+                <select
+                  name="corporate_form"
+                  value={formData.corporate_form}
+                  onChange={handleInputChange}
+                  style={{
+                    padding: "10px",
+                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                    border: "1px solid #334155",
+                    borderRadius: "6px",
+                    color: "#f1f5f9",
+                    fontSize: "0.9rem"
+                  }}
+                >
+                  <option value="as">Anonim Şirket (A.Ş.)</option>
+                  <option value="ltd">Limited Şirket (Ltd. Şti.)</option>
+                  <option value="joint">Kollektif Şirket</option>
+                  <option value="commandite">Komandit Şirket</option>
+                  <option value="cooperative">Kooperatif</option>
+                  <option value="branch">Şube</option>
+                  <option value="individual">Şahıs Şirketi</option>
+                </select>
+              </div>
             </div>
+
+            {/* İkinci Satır */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Country</label>
+                <select
+                  name="country"
+                  value={formData.country}
+                  onChange={handleInputChange}
+                  style={{
+                    padding: "10px",
+                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                    border: "1px solid #334155",
+                    borderRadius: "6px",
+                    color: "#f1f5f9",
+                    fontSize: "0.9rem"
+                  }}
+                >
+                  <option value="TR">Türkiye</option>
+                  <option value="US">United States</option>
+                  <option value="DE">Germany</option>
+                  <option value="FR">France</option>
+                  <option value="GB">United Kingdom</option>
+                  <option value="IT">Italy</option>
+                  <option value="ES">Spain</option>
+                  <option value="NL">Netherlands</option>
+                  <option value="BE">Belgium</option>
+                  <option value="CH">Switzerland</option>
+                  <option value="AE">United Arab Emirates</option>
+                  <option value="SA">Saudi Arabia</option>
+                </select>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Localization Country</label>
+                <select
+                  name="localization_country"
+                  value={formData.localization_country}
+                  onChange={handleInputChange}
+                  style={{
+                    padding: "10px",
+                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                    border: "1px solid #334155",
+                    borderRadius: "6px",
+                    color: "#f1f5f9",
+                    fontSize: "0.9rem"
+                  }}
+                >
+                  <option value="TR">Türkiye</option>
+                  <option value="US">United States</option>
+                  <option value="DE">Germany</option>
+                  <option value="FR">France</option>
+                  <option value="GB">United Kingdom</option>
+                  <option value="IT">Italy</option>
+                  <option value="ES">Spain</option>
+                  <option value="NL">Netherlands</option>
+                  <option value="BE">Belgium</option>
+                  <option value="CH">Switzerland</option>
+                  <option value="AE">United Arab Emirates</option>
+                  <option value="SA">Saudi Arabia</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Üçüncü Satır - Logotype */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Logotype URL</label>
+                <input
+                  type="text"
+                  name="logotype"
+                  value={formData.logotype}
+                  onChange={handleInputChange}
+                  style={{
+                    padding: "10px",
+                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                    border: "1px solid #334155",
+                    borderRadius: "6px",
+                    color: "#f1f5f9",
+                    fontSize: "0.9rem"
+                  }}
+                  placeholder="https://example.com/logo.png"
+                />
+              </div>
+              {/* Boş sütun - denge için */}
+              <div></div>
+            </div>
+
+            {/* Logotype önizleme (eğer URL varsa) */}
+            {formData.logotype && (
+              <div style={{ display: "flex", flexDirection: "column", marginTop: "10px" }}>
+                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Logotype Preview</label>
+                <div style={{
+                  padding: "15px",
+                  backgroundColor: "rgba(30, 41, 59, 0.8)",
+                  border: "1px solid #334155",
+                  borderRadius: "6px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: "100px"
+                }}>
+                  <img 
+                    src={formData.logotype} 
+                    alt="Company Logo" 
+                    style={{
+                      maxWidth: "150px",
+                      maxHeight: "80px",
+                      objectFit: "contain"
+                    }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      const parent = (e.target as HTMLImageElement).parentElement;
+                      if (parent) {
+                        parent.innerHTML = '<div style="color: #94a3b8; text-align: center;"><i class="fas fa-image" style="font-size: 2rem; margin-bottom: 5px;"></i><p>Logo cannot be loaded</p></div>';
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ 
+            textAlign: "center", 
+            padding: "30px 0", 
+            color: "#94a3b8",
+            minHeight: "250px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center"
+          }}>
+            <i className="fas fa-building" style={{ fontSize: "2.5rem", marginBottom: "10px" }}></i>
+            <p>Düzenlemek için bir şirket seçin</p>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 };
 
-// AddressTab bileşeni
-const AddressTab = () => {
-  const [addressData, setAddressData] = useState({
-    address_line1: "1234 İş Merkezi Sokak",
-    address_line2: "No: 56 Kat: 7",
-    city: "İstanbul",
-    postal_code: "34000",
-    phone: "+90 212 123 45 67",
-    email: "info@sirket.com",
-    website: "www.sirket.com"
-  });
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setAddressData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
+// AddressTab bileşeni - SABİT YÜKSEKLİK
+const AddressTab = ({ selectedCompany }: { selectedCompany: Company | null }) => {
   return (
-    <div className="space-y-4">
-      <div className="form-grid">
-        <div className="form-column">
-          <div className="form-group">
-            <label className="form-label">Address Line 1</label>
+    <div style={{ padding: "15px 0", minHeight: "250px" }}>
+      {selectedCompany ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Adres</label>
             <input
               type="text"
-              name="address_line1"
-              value={addressData.address_line1}
-              onChange={handleInputChange}
-              className="form-input"
+              style={{
+                padding: "10px",
+                backgroundColor: "rgba(30, 41, 59, 0.8)",
+                border: "1px solid #334155",
+                borderRadius: "6px",
+                color: "#f1f5f9",
+                fontSize: "0.9rem"
+              }}
+              placeholder="Adres bilgisi"
             />
           </div>
-
-          <div className="form-group">
-            <label className="form-label">Address Line 2</label>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Şehir</label>
             <input
               type="text"
-              name="address_line2"
-              value={addressData.address_line2}
-              onChange={handleInputChange}
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">City</label>
-            <input
-              type="text"
-              name="city"
-              value={addressData.city}
-              onChange={handleInputChange}
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Postal Code</label>
-            <input
-              type="text"
-              name="postal_code"
-              value={addressData.postal_code}
-              onChange={handleInputChange}
-              className="form-input"
+              style={{
+                padding: "10px",
+                backgroundColor: "rgba(30, 41, 59, 0.8)",
+                border: "1px solid #334155",
+                borderRadius: "6px",
+                color: "#f1f5f9",
+                fontSize: "0.9rem"
+              }}
+              placeholder="Şehir"
             />
           </div>
         </div>
-
-        <div className="form-column">
-          <div className="form-group">
-            <label className="form-label">Phone</label>
-            <input
-              type="text"
-              name="phone"
-              value={addressData.phone}
-              onChange={handleInputChange}
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={addressData.email}
-              onChange={handleInputChange}
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Website</label>
-            <input
-              type="text"
-              name="website"
-              value={addressData.website}
-              onChange={handleInputChange}
-              className="form-input"
-            />
-          </div>
+      ) : (
+        <div style={{ 
+          textAlign: "center", 
+          padding: "30px 0", 
+          color: "#94a3b8",
+          minHeight: "250px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center"
+        }}>
+          <i className="fas fa-map-marker-alt" style={{ fontSize: "2.5rem", marginBottom: "10px" }}></i>
+          <p>Adres bilgilerini görmek için bir şirket seçin</p>
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -271,298 +305,625 @@ const tabs = ["General", "Address"];
 
 export default function CompanyPage() {
   const [activeTab, setActiveTab] = useState("General");
-  const [companies, setCompanies] = useState<Company[]>([
-    { company: "COMP001", name: "Demo Şirket A.Ş.", association_no: "1234567890", default_language: "tr", corporate_form: "as", country: "TR", localization_country: "TR" },
-    { company: "COMP002", name: "Test Ltd. Şti.", association_no: "9876543210", default_language: "en", corporate_form: "ltd", country: "TR", localization_country: "TR" }
-  ]);
+  
+  // SearchList'ten seçilen şirket state'i
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [isSearchListVisible, setIsSearchListVisible] = useState(false);
 
+  // Örnek şirket verileri - SADECE SEARCHLIST İÇİN
+  const initialCompanies: Company[] = [
+    { id: 1, company: "COMP001", name: "Demo Şirket A.Ş.", association_no: "1234567890", default_language: "tr", logotype: "https://via.placeholder.com/150", corporate_form: "as", country: "TR", localization_country: "TR" },
+    { id: 2, company: "COMP002", name: "Test Ltd. Şti.", association_no: "9876543210", default_language: "en", corporate_form: "ltd", country: "TR", localization_country: "TR" },
+    { id: 3, company: "COMP003", name: "Global İnşaat A.Ş.", association_no: "4567891230", default_language: "tr", corporate_form: "as", country: "TR", localization_country: "TR" },
+    { id: 4, company: "COMP004", name: "Teknoloji Ltd.", association_no: "7891234560", default_language: "en", corporate_form: "ltd", country: "TR", localization_country: "TR" },
+    { id: 5, company: "COMP005", name: "Mobilya Üretim A.Ş.", association_no: "3216549870", default_language: "tr", corporate_form: "as", country: "TR", localization_country: "TR" },
+  ];
+
+  const [companies, setCompanies] = useState<Company[]>(initialCompanies);
+
+  // Düzenlenen şirket
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+
+  const searchListItems = companies.map(company => ({
+    id: company.id,
+    code: company.company,
+    name: company.name,
+    description: company.association_no ? `Assoc No: ${company.association_no}` : "No association number",
+    originalData: company
+  }));
+
+  const handleCompanySelect = (item: any) => {
+    const selected = companies.find(c => c.id === item.id);
+    if (selected) {
+      setSelectedCompany(selected);
+    }
+  };
+
+  const handleToggleSearchList = () => {
+    setIsSearchListVisible(!isSearchListVisible);
+  };
+
+  // Şirket silme
+  const handleDeleteCompany = (id: number) => {
+    if (window.confirm("Bu şirketi silmek istediğinize emin misiniz?")) {
+      setCompanies(companies.filter(company => company.id !== id));
+      if (selectedCompany?.id === id) {
+        setSelectedCompany(null);
+      }
+    }
+  };
+
+  // Şirket düzenleme - SearchList'te seçilen şirketin düzenleme moduna alınması
+  const handleEditCompany = (company: Company) => {
+    setEditingCompany(company);
+    setSelectedCompany(company);
+  };
+
+  const handleUpdateCompany = (field: keyof Company, value: string) => {
+    if (!editingCompany) return;
+    setEditingCompany({ ...editingCompany, [field]: value });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingCompany) return;
+    setCompanies(companies.map(company => 
+      company.id === editingCompany.id ? editingCompany : company
+    ));
+    setSelectedCompany(editingCompany);
+    setEditingCompany(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCompany(null);
+  };
+
+  // Ana kaydet butonu - GeneralTab bilgilerini kaydet
   const handleSave = () => {
-    console.log("Kaydet butonuna basıldı");
+    if (!selectedCompany) {
+      alert("Lütfen önce bir şirket seçin!");
+      return;
+    }
+    console.log("Değişiklikler kaydedildi:", selectedCompany);
+    alert("Değişiklikler kaydedildi!");
   };
 
   return (
-    <div className="main-content full-width-page">
-      {/* Header Card */}
-      <div className="card full-width-card">
-        <div className="card-header">
-          <div className="card-icon" style={{ backgroundColor: "#38bdf8" }}>
-            <i className="fas fa-building"></i>
-          </div>
-          <div className="card-title">Şirket Tanımları</div>
+    <div style={{ 
+      display: "flex", 
+      width: "100%", 
+      height: "100vh", 
+      overflow: "hidden",
+      backgroundColor: "#0f172a" 
+    }}>
+      {/* SearchList Panel - Sadece görünürse göster */}
+      {isSearchListVisible && (
+        <SearchList
+          title="Şirket Arama"
+          items={searchListItems}
+          onSelect={handleCompanySelect}
+          onToggle={handleToggleSearchList}
+          searchFields={["code", "name", "description"]}
+          displayFields={["code", "name"]}
+          icon="fas fa-building"
+          // Otomatik düzenleme modu için prop
+          autoEditMode={true}
+        />
+      )}
+
+      {/* SearchList GİZLİ durumda - Sadece göster butonu */}
+      {!isSearchListVisible && (
+        <div 
+          style={{
+            width: "40px",
+            height: "calc(100vh - 70px)",
+            position: "fixed",
+            left: "280px",
+            top: "70px",
+            backgroundColor: "#1e293b",
+            borderRight: "1px solid #334155",
+            zIndex: 100,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            paddingTop: "15px"
+          }}
+        >
           <button
-            onClick={handleSave}
-            className="save-btn"
+            onClick={handleToggleSearchList}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#94a3b8",
+              cursor: "pointer",
+              padding: "10px",
+              width: "100%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "5px"
+            }}
           >
-            <i className="fas fa-save"></i>
-            <span>Kaydet</span>
+            <ChevronRightIcon style={{ width: "20px", height: "20px" }} />
+            <span style={{ fontSize: "0.7rem", writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
+              Göster
+            </span>
           </button>
         </div>
-        <div className="status-message">
-          Şirket bilgilerini düzenleyin ve kaydedin. Tüm alanlar zorunludur.
-        </div>
-      </div>
+      )}
 
-      {/* Company List Card */}
-      <div className="card full-width-card">
-        <div className="card-header">
-          <div className="card-icon" style={{ backgroundColor: "#10b981" }}>
-            <i className="fas fa-list"></i>
-          </div>
-          <div className="card-title">Şirket Listesi</div>
-        </div>
-        <div className="table-container">
-          <table className="debug-table full-width-table">
-            <thead>
-              <tr>
-                <td className="debug-label">Company</td>
-                <td className="debug-label">Name</td>
-                <td className="debug-label">Association No</td>
-              </tr>
-            </thead>
-            <tbody>
-              {companies.map((c) => (
-                <tr key={c.company}>
-                  <td className="debug-value">{c.company}</td>
-                  <td className="debug-value">{c.name}</td>
-                  <td className="debug-value">{c.association_no || "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Tabs Card */}
-      <div className="card full-width-card">
-        {/* Tab Headers */}
-        <div className="tabs-header">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab;
-            return (
+      {/* Ana içerik */}
+      <div 
+        style={{ 
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          height: "100vh",
+          overflow: "hidden",
+          padding: "15px",
+          paddingTop: "70px",
+          transition: "all 0.3s ease",
+          backgroundColor: "#0f172a",
+          marginLeft: isSearchListVisible ? "320px" : "40px",
+          width: isSearchListVisible ? "calc(100vw - 320px)" : "calc(100vw - 40px)",
+          borderRight: "1px solid #334155",
+          boxSizing: "border-box"
+        }}
+      >
+        {/* Header Card */}
+        <div style={{
+          background: "#1e293b",
+          borderRadius: "12px",
+          padding: "20px",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+          border: "1px solid #334155",
+          display: "flex",
+          flexDirection: "column",
+          marginBottom: "15px",
+          minWidth: "0",
+          borderRight: "1px solid #334155"
+        }}>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            marginBottom: "15px",
+            paddingBottom: "15px",
+            borderBottom: "1px solid #334155",
+            flexWrap: "wrap",
+            gap: "10px"
+          }}>
+            <div style={{ 
+              backgroundColor: "#38bdf8",
+              color: "white",
+              width: "36px",
+              height: "36px",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.1rem",
+              flexShrink: 0
+            }}>
+              <i className="fas fa-building"></i>
+            </div>
+            <div style={{ 
+              fontSize: "1.3rem",
+              color: "#38bdf8",
+              marginLeft: "12px",
+              fontWeight: "600",
+              flex: 1,
+              minWidth: "200px"
+            }}>
+              Şirket Tanımları
+            </div>
+            <div style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: "8px", 
+              flexWrap: "wrap",
+              justifyContent: "flex-end" 
+            }}>
+              {/* SearchList toggle butonu */}
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`tab-button ${isActive ? 'tab-active' : 'tab-inactive'}`}
+                onClick={handleToggleSearchList}
+                style={{
+                  background: isSearchListVisible ? "#334155" : "#38bdf8",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "8px 12px",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  transition: "all 0.3s",
+                  flexShrink: 0
+                }}
               >
-                <div className="tab-content">
-                  {tab === "General" && <i className="fas fa-cog"></i>}
-                  {tab === "Address" && <i className="fas fa-map-marker-alt"></i>}
-                  <span>{tab}</span>
-                </div>
+                <i className="fas fa-search"></i>
+                <span>{isSearchListVisible ? "Listeyi Gizle" : "Listeyi Göster"}</span>
               </button>
-            );
-          })}
+              
+              {/* Ana kaydet butonu - SADECE ŞİRKET SEÇİLDİĞİNDE AKTİF */}
+              <button
+                onClick={handleSave}
+                disabled={!selectedCompany}
+                style={{
+                  background: selectedCompany 
+                    ? "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)" 
+                    : "#64748b",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "8px 15px",
+                  fontSize: "0.85rem",
+                  cursor: selectedCompany ? "pointer" : "not-allowed",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  flexShrink: 0,
+                  opacity: selectedCompany ? 1 : 0.6
+                }}
+              >
+                <i className="fas fa-save"></i>
+                <span>Kaydet</span>
+              </button>
+            </div>
+          </div>
+          
+          {/* Bilgi mesajı */}
+          <div style={{
+            color: "#94a3b8",
+            lineHeight: "1.5",
+            padding: "12px",
+            backgroundColor: "rgba(30, 41, 59, 0.5)",
+            borderRadius: "6px",
+            borderLeft: selectedCompany ? "3px solid #10b981" : "3px solid #38bdf8",
+            fontSize: "0.85rem"
+          }}>
+            <div style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "10px"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: "200px" }}>
+                <i className="fas fa-info-circle" style={{ marginRight: "8px" }}></i>
+                {selectedCompany 
+                  ? `"${selectedCompany.company} - ${selectedCompany.name}" şirketinin bilgilerini düzenleyin.`
+                  : "Düzenlemek için soldaki listeden bir şirket seçin."
+                }
+              </div>
+              {selectedCompany && (
+                <div style={{ 
+                  backgroundColor: "rgba(16, 185, 129, 0.2)", 
+                  padding: "4px 8px", 
+                  borderRadius: "4px",
+                  fontSize: "0.8rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  flexShrink: 0
+                }}>
+                  <i className="fas fa-check-circle" style={{ color: "#10b981" }}></i>
+                  <span>Seçili: <strong>{selectedCompany.company}</strong></span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Tab Content */}
-        <div className="tabs-content">
-          {activeTab === "General" && <GeneralTab />}
-          {activeTab === "Address" && <AddressTab />}
+        {/* COMPANY CARD - Company Code, Name, Association No - SEÇİLEN ŞİRKET BİLGİLERİ */}
+        <div style={{
+          background: "#1e293b",
+          borderRadius: "12px",
+          padding: "20px",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+          border: "1px solid #334155",
+          display: "flex",
+          flexDirection: "column",
+          marginBottom: "15px",
+          borderRight: "1px solid #334155"
+        }}>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            marginBottom: "15px",
+            paddingBottom: "15px",
+            borderBottom: "1px solid #334155",
+            flexWrap: "wrap",
+            gap: "10px"
+          }}>
+            <div style={{ 
+              backgroundColor: "#10b981",
+              color: "white",
+              width: "36px",
+              height: "36px",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.1rem",
+              flexShrink: 0
+            }}>
+              <i className="fas fa-building"></i>
+            </div>
+            <div style={{ 
+              fontSize: "1.3rem",
+              color: "#10b981",
+              marginLeft: "12px",
+              fontWeight: "600",
+              flex: 1,
+              minWidth: "200px"
+            }}>
+              {selectedCompany ? `Şirket Bilgileri - ${selectedCompany.company}` : "Şirket Bilgileri"}
+            </div>
+          </div>
+          
+          {/* SEÇİLEN ŞİRKET BİLGİLERİ - EDIT MODE VEYA VIEW MODE */}
+          {selectedCompany && (
+            <div style={{ 
+              backgroundColor: "rgba(30, 41, 59, 0.3)",
+              borderRadius: "8px",
+              padding: "15px",
+              marginBottom: "15px",
+              border: "1px solid #334155"
+            }}>
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "space-between",
+                marginBottom: "15px"
+              }}>
+                <h4 style={{ color: "#f1f5f9", fontSize: "0.95rem", fontWeight: "600" }}>
+                  <i className="fas fa-eye" style={{ marginRight: "8px", color: "#38bdf8" }}></i>
+                  Seçili Şirket Bilgileri
+                </h4>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    onClick={() => handleEditCompany(selectedCompany)}
+                    style={{
+                      background: "#3b82f6",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      padding: "6px 12px",
+                      fontSize: "0.75rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px"
+                    }}
+                  >
+                    <i className="fas fa-edit"></i>
+                    <span>Düzenle</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCompany(selectedCompany.id)}
+                    style={{
+                      background: "#ef4444",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      padding: "6px 12px",
+                      fontSize: "0.75rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px"
+                    }}
+                  >
+                    <i className="fas fa-trash"></i>
+                    <span>Sil</span>
+                  </button>
+                </div>
+              </div>
+              
+              {editingCompany?.id === selectedCompany.id ? (
+                // DÜZENLEME MODU
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "15px" }}>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.85rem" }}>Company Code *</label>
+                    <input
+                      type="text"
+                      value={editingCompany.company}
+                      onChange={(e) => handleUpdateCompany('company', e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        backgroundColor: "rgba(30, 41, 59, 0.8)",
+                        border: "1px solid #38bdf8",
+                        borderRadius: "4px",
+                        color: "#f1f5f9",
+                        fontSize: "0.85rem"
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.85rem" }}>Company Name *</label>
+                    <input
+                      type="text"
+                      value={editingCompany.name}
+                      onChange={(e) => handleUpdateCompany('name', e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        backgroundColor: "rgba(30, 41, 59, 0.8)",
+                        border: "1px solid #38bdf8",
+                        borderRadius: "4px",
+                        color: "#f1f5f9",
+                        fontSize: "0.85rem"
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.85rem" }}>Association No</label>
+                    <input
+                      type="text"
+                      value={editingCompany.association_no || ""}
+                      onChange={(e) => handleUpdateCompany('association_no', e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "8px 10px",
+                        backgroundColor: "rgba(30, 41, 59, 0.8)",
+                        border: "1px solid #38bdf8",
+                        borderRadius: "4px",
+                        color: "#f1f5f9",
+                        fontSize: "0.85rem"
+                      }}
+                    />
+                  </div>
+                  <div style={{ 
+                    display: "flex", 
+                    alignItems: "flex-end",
+                    gap: "8px" 
+                  }}>
+                    <button
+                      onClick={handleSaveEdit}
+                      style={{
+                        background: "#10b981",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        padding: "8px 15px",
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        flex: 1
+                      }}
+                    >
+                      <i className="fas fa-check"></i>
+                      <span>Kaydet</span>
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                      style={{
+                        background: "#64748b",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        padding: "8px 15px",
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        flex: 1
+                      }}
+                    >
+                      <i className="fas fa-times"></i>
+                      <span>İptal</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // GÖRÜNTÜLEME MODU
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "15px" }}>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <div style={{ fontSize: "0.8rem", color: "#94a3b8", marginBottom: "4px" }}>Company Code</div>
+                    <div style={{ 
+                      padding: "8px 10px",
+                      backgroundColor: "rgba(30, 41, 59, 0.5)",
+                      border: "1px solid #334155",
+                      borderRadius: "4px",
+                      color: "#f1f5f9",
+                      fontSize: "0.9rem",
+                      fontFamily: "monospace"
+                    }}>
+                      {selectedCompany.company}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <div style={{ fontSize: "0.8rem", color: "#94a3b8", marginBottom: "4px" }}>Company Name</div>
+                    <div style={{ 
+                      padding: "8px 10px",
+                      backgroundColor: "rgba(30, 41, 59, 0.5)",
+                      border: "1px solid #334155",
+                      borderRadius: "4px",
+                      color: "#f1f5f9",
+                      fontSize: "0.9rem"
+                    }}>
+                      {selectedCompany.name}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <div style={{ fontSize: "0.8rem", color: "#94a3b8", marginBottom: "4px" }}>Association No</div>
+                    <div style={{ 
+                      padding: "8px 10px",
+                      backgroundColor: "rgba(30, 41, 59, 0.5)",
+                      border: "1px solid #334155",
+                      borderRadius: "4px",
+                      color: "#f1f5f9",
+                      fontSize: "0.9rem"
+                    }}>
+                      {selectedCompany.association_no || "-"}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Tabs Card - GENEL BİLGİLER (Diğer alanlar) */}
+        <div style={{
+          background: "#1e293b",
+          borderRadius: "12px",
+          padding: "20px",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+          border: "1px solid #334155",
+          flexShrink: 0,
+          borderRight: "1px solid #334155",
+          minHeight: "400px"
+        }}>
+          {/* Tab Headers */}
+          <div style={{ 
+            display: "flex", 
+            borderBottom: "1px solid #334155",
+            marginBottom: "15px"
+          }}>
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    flex: 1,
+                    textAlign: "center",
+                    padding: "12px",
+                    background: "none",
+                    border: "none",
+                    color: isActive ? "#1d4ed8" : "#64748b",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    borderBottom: isActive ? "2px solid #2563eb" : "2px solid transparent",
+                    backgroundColor: isActive ? "rgba(30, 41, 59, 0.8)" : "transparent",
+                    fontSize: "0.85rem",
+                    minWidth: "120px",
+                    height: "44px"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                    {tab === "General" && <i className="fas fa-cog"></i>}
+                    {tab === "Address" && <i className="fas fa-map-marker-alt"></i>}
+                    <span>{tab}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tab Content - SABİT YÜKSEKLİK */}
+          <div style={{ minHeight: "300px" }}>
+            {activeTab === "General" && <GeneralTab selectedCompany={selectedCompany} />}
+            {activeTab === "Address" && <AddressTab selectedCompany={selectedCompany} />}
+          </div>
         </div>
       </div>
-
-      {/* Inline CSS for full-width layout */}
-      <style jsx>{`
-        .full-width-page {
-          width: 100%;
-          max-width: 100%;
-          padding: 20px;
-          margin: 0;
-          box-sizing: border-box;
-        }
-
-        .full-width-card {
-          width: 100%;
-          margin-bottom: 20px;
-          box-sizing: border-box;
-        }
-
-        .full-width-table {
-          width: 100%;
-          table-layout: fixed;
-        }
-
-        .full-width-table td {
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-        }
-
-        /* Responsive grid */
-        .form-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 20px;
-        }
-
-        @media (min-width: 768px) {
-          .form-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-
-        .form-column {
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .form-label {
-          display: block;
-          margin-bottom: 5px;
-          font-weight: 500;
-          font-size: 0.9rem;
-          color: #94a3b8;
-        }
-
-        .form-input, .form-select {
-          width: 100%;
-          padding: 10px 12px;
-          background-color: rgba(30, 41, 59, 0.8);
-          border: 1px solid #334155;
-          border-radius: 8px;
-          color: #f1f5f9;
-          font-size: 0.9rem;
-          box-sizing: border-box;
-        }
-
-        .form-input:focus, .form-select:focus {
-          outline: none;
-          border-color: #38bdf8;
-          box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
-        }
-
-        .form-select {
-          appearance: none;
-          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-          background-position: right 0.5rem center;
-          background-repeat: no-repeat;
-          background-size: 1em 1em;
-        }
-
-        .upload-group {
-          display: flex;
-          gap: 10px;
-        }
-
-        .upload-btn {
-          padding: 10px 15px;
-          background-color: rgba(30, 41, 59, 0.8);
-          border: 1px solid #334155;
-          border-radius: 8px;
-          color: #94a3b8;
-          font-size: 0.9rem;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          white-space: nowrap;
-        }
-
-        .upload-btn:hover {
-          border-color: #38bdf8;
-          color: #38bdf8;
-        }
-
-        .save-btn {
-          background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          padding: 10px 20px;
-          font-size: 0.9rem;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-left: auto;
-        }
-
-        .save-btn:hover {
-          background: linear-gradient(135deg, #0284c7 0%, #075985 100%);
-        }
-
-        .tabs-header {
-          display: flex;
-          border-bottom: 1px solid #334155;
-        }
-
-        .tab-button {
-          flex: 1;
-          padding: 12px;
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-weight: 600;
-          border-bottom: 2px solid transparent;
-        }
-
-        .tab-button.tab-active {
-          color: #1d4ed8;
-          background-color: #f1f5f9;
-          border-bottom-color: #2563eb;
-        }
-
-        .tab-button.tab-inactive {
-          color: #64748b;
-        }
-
-        .tab-button:hover {
-          background-color: rgba(56, 189, 248, 0.1);
-        }
-
-        .tab-content {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-        }
-
-        .tabs-content {
-          padding: 20px 0;
-        }
-
-        .table-container {
-          overflow-x: auto;
-        }
-
-        @media (max-width: 768px) {
-          .full-width-page {
-            padding: 15px;
-          }
-          
-          .save-btn span {
-            display: none;
-          }
-          
-          .tab-button {
-            padding: 10px 5px;
-            font-size: 0.85rem;
-          }
-          
-          .tab-content span {
-            display: none;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .full-width-page {
-            padding: 10px;
-          }
-          
-          .card-title {
-            font-size: 1.2rem;
-          }
-          
-          .upload-btn span {
-            display: none;
-          }
-        }
-      `}</style>
     </div>
   );
 }
