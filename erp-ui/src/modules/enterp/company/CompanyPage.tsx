@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SearchList from "../../../components/SearchList";
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
 
@@ -12,6 +12,10 @@ interface Company {
   corporate_form?: string;
   country: string;
   localization_country: string;
+  creation_date?: string;
+  created_by?: string;
+  rowversion?: number;
+  rowkey?: string;
 }
 
 // GeneralTab bileşeni - SADECE DİĞER ALANLAR
@@ -25,7 +29,7 @@ const GeneralTab = ({ selectedCompany }: { selectedCompany: Company | null }) =>
   });
 
   // Seçili şirket değiştiğinde formData'yı güncelle
-  useState(() => {
+  useEffect(() => {
     if (selectedCompany) {
       setFormData({
         default_language: selectedCompany.default_language || "tr",
@@ -35,7 +39,7 @@ const GeneralTab = ({ selectedCompany }: { selectedCompany: Company | null }) =>
         localization_country: selectedCompany.localization_country || "TR"
       });
     }
-  });
+  }, [selectedCompany]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -310,19 +314,59 @@ export default function CompanyPage() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isSearchListVisible, setIsSearchListVisible] = useState(false);
 
-  // Örnek şirket verileri - SADECE SEARCHLIST İÇİN
-  const initialCompanies: Company[] = [
-    { id: 1, company: "COMP001", name: "Demo Şirket A.Ş.", association_no: "1234567890", default_language: "tr", logotype: "https://via.placeholder.com/150", corporate_form: "as", country: "TR", localization_country: "TR" },
-    { id: 2, company: "COMP002", name: "Test Ltd. Şti.", association_no: "9876543210", default_language: "en", corporate_form: "ltd", country: "TR", localization_country: "TR" },
-    { id: 3, company: "COMP003", name: "Global İnşaat A.Ş.", association_no: "4567891230", default_language: "tr", corporate_form: "as", country: "TR", localization_country: "TR" },
-    { id: 4, company: "COMP004", name: "Teknoloji Ltd.", association_no: "7891234560", default_language: "en", corporate_form: "ltd", country: "TR", localization_country: "TR" },
-    { id: 5, company: "COMP005", name: "Mobilya Üretim A.Ş.", association_no: "3216549870", default_language: "tr", corporate_form: "as", country: "TR", localization_country: "TR" },
-  ];
-
-  const [companies, setCompanies] = useState<Company[]>(initialCompanies);
+  // PostgreSQL'den gelen şirket verileri
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Düzenlenen şirket
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+
+  // PostgreSQL'den şirket verilerini çek
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        setLoading(true);
+        // API endpoint'inizi buraya girin
+        const response = await fetch('http://localhost:5217/api/company');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // API'den gelen verileri uygulamamızın Company interface'ine uyarlayalım
+        const formattedCompanies: Company[] = data.map((company: any, index: number) => ({
+          id: index + 1, // API'den ID gelmiyorsa, index kullan
+          company: company.companyId || company.company || "",
+          name: company.name || "",
+          association_no: company.associationNo || company.association_no || "",
+          default_language: company.defaultLanguage || company.default_language || "tr",
+          logotype: company.logotype || "",
+          corporate_form: company.corporateForm || company.corporate_form || "",
+          country: company.country || "TR",
+          localization_country: company.localizationCountry || company.localization_country || "TR",
+          creation_date: company.creationDate || company.creation_date || "",
+          created_by: company.createdBy || company.created_by || "",
+          rowversion: company.rowversion || 1,
+          rowkey: company.rowkey || ""
+        }));
+        
+        setCompanies(formattedCompanies);
+        setError(null);
+      } catch (err) {
+        console.error("Şirket verileri çekilirken hata:", err);
+        setError(err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu");
+        // Eğer API çalışmıyorsa, boş liste göster
+        setCompanies([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompanies();
+  }, []);
 
   const searchListItems = companies.map(company => ({
     id: company.id,
@@ -344,18 +388,38 @@ export default function CompanyPage() {
   };
 
   // Şirket silme
-  const handleDeleteCompany = (id: number) => {
+  const handleDeleteCompany = async (id: number) => {
     if (window.confirm("Bu şirketi silmek istediğinize emin misiniz?")) {
-      setCompanies(companies.filter(company => company.id !== id));
-      if (selectedCompany?.id === id) {
-        setSelectedCompany(null);
+      try {
+        // Silme işlemi için API çağrısı
+        const companyToDelete = companies.find(c => c.id === id);
+        if (!companyToDelete) return;
+
+        // DELETE isteği gönder
+        const response = await fetch(`http://localhost:5217/api/company/${companyToDelete.company}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          // Başarılı olursa, state'i güncelle
+          setCompanies(companies.filter(company => company.id !== id));
+          if (selectedCompany?.id === id) {
+            setSelectedCompany(null);
+          }
+          alert("Şirket başarıyla silindi!");
+        } else {
+          throw new Error("Silme işlemi başarısız oldu");
+        }
+      } catch (err) {
+        console.error("Şirket silinirken hata:", err);
+        alert("Şirket silinirken bir hata oluştu!");
       }
     }
   };
 
   // Şirket düzenleme - SearchList'te seçilen şirketin düzenleme moduna alınması
   const handleEditCompany = (company: Company) => {
-    setEditingCompany(company);
+    setEditingCompany({...company});
     setSelectedCompany(company);
   };
 
@@ -364,13 +428,43 @@ export default function CompanyPage() {
     setEditingCompany({ ...editingCompany, [field]: value });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingCompany) return;
-    setCompanies(companies.map(company => 
-      company.id === editingCompany.id ? editingCompany : company
-    ));
-    setSelectedCompany(editingCompany);
-    setEditingCompany(null);
+
+    try {
+      // Güncelleme işlemi için API çağrısı
+      const response = await fetch(`http://localhost:5217/api/company/${editingCompany.company}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyId: editingCompany.company,
+          name: editingCompany.name,
+          associationNo: editingCompany.association_no,
+          defaultLanguage: editingCompany.default_language,
+          logotype: editingCompany.logotype,
+          corporateForm: editingCompany.corporate_form,
+          country: editingCompany.country,
+          localizationCountry: editingCompany.localization_country
+        }),
+      });
+
+      if (response.ok) {
+        // Başarılı olursa, state'i güncelle
+        setCompanies(companies.map(company => 
+          company.id === editingCompany.id ? editingCompany : company
+        ));
+        setSelectedCompany(editingCompany);
+        setEditingCompany(null);
+        alert("Değişiklikler kaydedildi!");
+      } else {
+        throw new Error("Güncelleme işlemi başarısız oldu");
+      }
+    } catch (err) {
+      console.error("Şirket güncellenirken hata:", err);
+      alert("Değişiklikler kaydedilirken bir hata oluştu!");
+    }
   };
 
   const handleCancelEdit = () => {
@@ -378,13 +472,39 @@ export default function CompanyPage() {
   };
 
   // Ana kaydet butonu - GeneralTab bilgilerini kaydet
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!selectedCompany) {
       alert("Lütfen önce bir şirket seçin!");
       return;
     }
-    console.log("Değişiklikler kaydedildi:", selectedCompany);
-    alert("Değişiklikler kaydedildi!");
+
+    try {
+      // General tab'deki değişiklikleri kaydetmek için API çağrısı
+      const response = await fetch(`http://localhost:5217/api/company/${selectedCompany.company}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companyId: selectedCompany.company,
+          defaultLanguage: selectedCompany.default_language,
+          logotype: selectedCompany.logotype,
+          corporateForm: selectedCompany.corporate_form,
+          country: selectedCompany.country,
+          localizationCountry: selectedCompany.localization_country
+        }),
+      });
+
+      if (response.ok) {
+        console.log("Değişiklikler kaydedildi:", selectedCompany);
+        alert("Değişiklikler kaydedildi!");
+      } else {
+        throw new Error("Kaydetme işlemi başarısız oldu");
+      }
+    } catch (err) {
+      console.error("Değişiklikler kaydedilirken hata:", err);
+      alert("Değişiklikler kaydedilirken bir hata oluştu!");
+    }
   };
 
   return (
@@ -405,8 +525,6 @@ export default function CompanyPage() {
           searchFields={["code", "name", "description"]}
           displayFields={["code", "name"]}
           icon="fas fa-building"
-          // Otomatik düzenleme modu için prop
-          autoEditMode={true}
         />
       )}
 
@@ -544,30 +662,44 @@ export default function CompanyPage() {
                 <span>{isSearchListVisible ? "Listeyi Gizle" : "Listeyi Göster"}</span>
               </button>
               
-              {/* Ana kaydet butonu - SADECE ŞİRKET SEÇİLDİĞİNDE AKTİF */}
-              <button
-                onClick={handleSave}
-                disabled={!selectedCompany}
-                style={{
-                  background: selectedCompany 
-                    ? "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)" 
-                    : "#64748b",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
+              {/* Yükleme durumuna göre kaydet butonu */}
+              {loading ? (
+                <div style={{
                   padding: "8px 15px",
                   fontSize: "0.85rem",
-                  cursor: selectedCompany ? "pointer" : "not-allowed",
+                  color: "#94a3b8",
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px",
-                  flexShrink: 0,
-                  opacity: selectedCompany ? 1 : 0.6
-                }}
-              >
-                <i className="fas fa-save"></i>
-                <span>Kaydet</span>
-              </button>
+                  gap: "6px"
+                }}>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  <span>Yükleniyor...</span>
+                </div>
+              ) : (
+                <button
+                  onClick={handleSave}
+                  disabled={!selectedCompany}
+                  style={{
+                    background: selectedCompany 
+                      ? "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)" 
+                      : "#64748b",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "8px 15px",
+                    fontSize: "0.85rem",
+                    cursor: selectedCompany ? "pointer" : "not-allowed",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    flexShrink: 0,
+                    opacity: selectedCompany ? 1 : 0.6
+                  }}
+                >
+                  <i className="fas fa-save"></i>
+                  <span>Kaydet</span>
+                </button>
+              )}
             </div>
           </div>
           
@@ -590,10 +722,17 @@ export default function CompanyPage() {
             }}>
               <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: "200px" }}>
                 <i className="fas fa-info-circle" style={{ marginRight: "8px" }}></i>
-                {selectedCompany 
-                  ? `"${selectedCompany.company} - ${selectedCompany.name}" şirketinin bilgilerini düzenleyin.`
-                  : "Düzenlemek için soldaki listeden bir şirket seçin."
-                }
+                {loading ? (
+                  <span>Veriler yükleniyor...</span>
+                ) : error ? (
+                  <span style={{ color: "#ef4444" }}>Hata: {error}</span>
+                ) : companies.length === 0 ? (
+                  <span>Veritabanında şirket bulunamadı.</span>
+                ) : selectedCompany ? (
+                  `"${selectedCompany.company} - ${selectedCompany.name}" şirketinin bilgilerini düzenleyin.`
+                ) : (
+                  "Düzenlemek için soldaki listeden bir şirket seçin."
+                )}
               </div>
               {selectedCompany && (
                 <div style={{ 
@@ -866,6 +1005,24 @@ export default function CompanyPage() {
               )}
             </div>
           )}
+          
+          {/* Şirket sayısı bilgisi */}
+          <div style={{ 
+            fontSize: "0.85rem", 
+            color: "#94a3b8", 
+            padding: "8px 12px",
+            backgroundColor: "rgba(30, 41, 59, 0.3)",
+            borderRadius: "4px",
+            marginTop: "10px"
+          }}>
+            <i className="fas fa-database" style={{ marginRight: "8px" }}></i>
+            <span>Toplam {companies.length} şirket bulundu</span>
+            {loading && (
+              <span style={{ marginLeft: "15px" }}>
+                <i className="fas fa-spinner fa-spin"></i> Veriler güncelleniyor...
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Tabs Card - GENEL BİLGİLER (Diğer alanlar) */}
