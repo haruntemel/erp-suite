@@ -11,6 +11,15 @@ const Shell = () => {
   // Modül verileri
   const modules = [
     {
+      key: "enterp",
+      name: "Uygulama Temel Kurgu",
+      icon: "shopping-cart",
+      path: "/enterp/company",
+      children: [
+        { name: "Şirket", path: "/enterp/company" } 
+      ]
+    },
+    {
       key: "sales",
       name: "Satış",
       icon: "shopping-cart",
@@ -95,6 +104,7 @@ const Shell = () => {
   // Aktif modülü bul
   const getActiveModule = () => {
     const path = location.pathname;
+    if (path.startsWith("/enterp")) return "enterp";
     if (path.startsWith("/sales")) return "sales";
     if (path.startsWith("/invent")) return "invent";
     if (path.startsWith("/fin")) return "fin";

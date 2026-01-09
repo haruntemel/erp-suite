@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import Shell from "./layout/Shell";
+import AppBase from "./modules/enterp/AppBase";
 import SalesHome from "./modules/sales/SalesHome";
 import InventoryHome from "./modules/invent/InventoryHome";
 import FinanceHome from "./modules/fin/FinanceHome";
@@ -18,6 +19,7 @@ import UsersHome from "./modules/user/UsersHome";
 import LoginForm from "./modules/auth/LoginForm";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import CreateUserForm from "./modules/user/CreateUserForm";
+import CompanyPage from "./modules/enterp/company/CompanyPage";
 
 // 🔹 Yetkisiz sayfa
 //import Unauthorized from "./modules/auth/Unauthorized";
@@ -43,12 +45,14 @@ export default function App() {
         <Route path="/" element={<Lobby />} />
 
         {/* Modüller */}
+        <Route path="/enterp" element={<AppBase />} />
         <Route path="/sales" element={<SalesHome />} />
         <Route path="/invent" element={<InventoryHome />} />
         <Route path="/fin" element={<FinanceHome />} />
         <Route path="/user" element={<UsersHome />} />
 
         {/* Alt kırılımlar */}
+        <Route path="/enterp/company" element={<CompanyPage />} />
         <Route path="/sales/orders" element={<SalesOrders />} />
         <Route path="/sales/quotes" element={<SalesQuotes />} />
         <Route path="/invent/warehouse" element={<Warehouse />} />

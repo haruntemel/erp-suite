@@ -3,9 +3,11 @@ import { HomeIcon } from "@heroicons/react/24/outline";
 import { logout } from "../services/auth"; // ✅ logout fonksiyonunu import ediyoruz
 
 const pathLabels: Record<string, string> = {
+  enterp: "Uygulama Temel Kurgu",
   sales: "Satış",
   invent: "Stok",
   fin: "Finans",
+  company: "Şirket",
   orders: "Satış Siparişi",
   quotes: "Satış Teklifi",
   warehouse: "Depo Yönetimi",

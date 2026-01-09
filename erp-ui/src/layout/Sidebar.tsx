@@ -16,6 +16,12 @@ interface ModuleData {
 
 // Statik modüller (JSON'dan gelecek ama şimdilik burada)
 const staticModules: Record<string, ModuleData> = {
+  enterp: {
+    label: "Uygulama Temel Kurgu",
+    pages: {
+      company: { label: "Şirket", actions: ["view", "create", "edit"] }
+    }
+  },
   sales: {
     label: "Satış",
     pages: {

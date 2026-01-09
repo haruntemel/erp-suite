@@ -27,6 +27,7 @@ body {
   min-height: 100vh;
   transition: all 0.3s ease;
   overflow-x: hidden;
+
 }
 
 #root {
@@ -34,6 +35,18 @@ body {
   margin: 0 !important;
   padding: 0 !important;
   text-align: left !important;
+}
+
+.tab-active {
+  color: #1d4ed8 !important; /* Tailwind text-blue-700 */
+  background-color: #f1f5f9; /* gri arka plan */
+  border-bottom: 2px solid #2563eb; /* border-blue-600 */
+  font-weight: 600; /* yazıyı kalınlaştır */
+}
+
+.tab-inactive {
+  color: #64748b !important; /* text-gray-600 */
+  font-weight: 600; /* pasif tab da kalın olsun */
 }
 
 /* Sidebar */

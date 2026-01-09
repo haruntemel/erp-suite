@@ -3,6 +3,7 @@ using System;
 using Erp.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Erp.Api.Migrations
 {
     [DbContext(typeof(ErpDbContext))]
-    partial class ErpDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260108192228_AddCompanyTab")]
+    partial class AddCompanyTab
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -51,8 +54,8 @@ namespace Erp.Api.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("created_by");
 
-                    b.Property<DateOnly>("CreationDate")
-                        .HasColumnType("date")
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("creation_date");
 
                     b.Property<string>("DefaultLanguage")
