@@ -8,7 +8,7 @@ const Shell = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [openModules, setOpenModules] = useState<string[]>([]);
 
-  // Modül verileri
+  // Modül verileri - DÜZELTİLDİ: Müşteri sayfası yolu düzeltildi ve user modülü name eklendi
   const modules = [
     {
       key: "enterp",
@@ -27,7 +27,7 @@ const Shell = () => {
       children: [
         { name: "Satış Siparişi", path: "/sales/orders" },
         { name: "Satış Teklifi", path: "/sales/quotes" },
-        { name: "Müşteriler", path: "/sales/customers" },
+        { name: "Müşteriler", path: "/sales/customer" }, // DÜZELTİLDİ: /sales/customer/customers -> /sales/customer
         { name: "Satış Faturaları", path: "/sales/invoices" }
       ]
     },
@@ -56,7 +56,7 @@ const Shell = () => {
       ]
     },
     {
-      key: "user",
+      key: "user", // DÜZELTİLDİ: name özelliği eklendi
       name: "Kullanıcı",
       icon: "users",
       path: "/user",
@@ -165,7 +165,6 @@ const Shell = () => {
               onClick={() => navigate("/")}
               style={{ cursor: "pointer" }}
             >
-             {/*<div className={`status-checkbox ${location.pathname === "/" ? "checked" : ""}`}></div>*/}
               <i className="fas fa-tachometer-alt"></i>
               <span>Dashboard</span>
               <div className="tooltip">Dashboard</div>
@@ -188,7 +187,6 @@ const Shell = () => {
                     onClick={() => toggleModule(module.key)}
                     style={{ cursor: "pointer" }}
                   >
-                   {/*  <div className={`status-checkbox ${isActive ? "checked" : ""}`}></div>*/}
                     <i className={`fas fa-${module.icon}`}></i>
                     <span>{module.name}</span>
                     <i className={`fas fa-chevron-${isOpen ? "down" : "right"}`} style={{ marginLeft: "auto", fontSize: "0.8rem" }}></i>
@@ -205,7 +203,6 @@ const Shell = () => {
                         onClick={() => navigate(child.path)}
                         style={{ cursor: "pointer" }}
                       >
-                        {/* <div className="status-checkbox"></div>*/}
                         <i className="fas fa-angle-right"></i>
                         <span>{child.name}</span>
                         <div className="tooltip">{child.name}</div>
@@ -233,15 +230,11 @@ const Shell = () => {
       {/* Topbar */}
       <header className="topbar">
         <div className="topbar-left">
-         
-
           <button className="home-btn" onClick={handleHomeClick}>
             <i className="fas fa-home"></i>
             <span>Home</span>
           </button>
         </div>
-
-       
 
         <div className="topbar-right">
           <div className="user-info">

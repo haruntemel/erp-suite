@@ -9,6 +9,7 @@ import Lobby from "./modules/lobby/Lobby";
 // Alt kırılım sayfaları
 import SalesOrders from "./modules/sales/SalesOrders";
 import SalesQuotes from "./modules/sales/SalesQuotes";
+import CustomerPage from "./modules/sales/customer/CustomerPage";
 import Warehouse from "./modules/invent/Warehouse";
 import Invoices from "./modules/fin/Invoices";
 
@@ -53,6 +54,7 @@ export default function App() {
 
         {/* Alt kırılımlar */}
         <Route path="/enterp/company" element={<CompanyPage />} />
+        <Route path="/sales/customer" element={<CustomerPage />} />
         <Route path="/sales/orders" element={<SalesOrders />} />
         <Route path="/sales/quotes" element={<SalesQuotes />} />
         <Route path="/invent/warehouse" element={<Warehouse />} />

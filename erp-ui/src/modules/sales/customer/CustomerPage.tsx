@@ -2,65 +2,79 @@ import { useState, useEffect } from "react";
 import SearchList from "../../../components/SearchList";
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
 
-interface Company {
+interface Customer {
   id: number;
-  company: string;
+  customer_id: string;
   name: string;
   association_no?: string;
-  default_language: string;
-  logotype?: string;
   corporate_form?: string;
   country: string;
-  localization_country: string;
-  creation_date?: string;
+  party_type?: string;
+  category?: string;
+  check_limit?: string;
+  limit_control_type?: string;
+  default_language: string;
   created_by?: string;
-  rowversion?: number;
+  changed_by?: string;
+  creation_date?: string;
+  identifier_reference?: string;
+  rowversion?: Date;
   rowkey?: string;
+  rowtype?: string;
 }
 
-interface CompanyUpdateDto {
+interface CustomerUpdateDto {
   name?: string;
   associationNo?: string;
-  defaultLanguage?: string;
-  logotype?: string;
   corporateForm?: string;
   country?: string;
-  localizationCountry?: string;
-  rowversion: number;
+  partyType?: string;
+  category?: string;
+  checkLimit?: string;
+  limitControlType?: string;
+  defaultLanguage?: string;
+  identifierReference?: string;
+  rowversion?: Date;
 }
 
 // GeneralTab bileşeni
 const GeneralTab = ({ 
-  selectedCompany, 
+  selectedCustomer, 
   onFormDataChange 
 }: { 
-  selectedCompany: Company | null;
+  selectedCustomer: Customer | null;
   onFormDataChange?: (formData: any) => void;
 }) => {
   const [formData, setFormData] = useState({
-    default_language: selectedCompany?.default_language || "tr",
-    logotype: selectedCompany?.logotype || "",
-    corporate_form: selectedCompany?.corporate_form || "",
-    country: selectedCompany?.country || "TR",
-    localization_country: selectedCompany?.localization_country || "TR"
+    default_language: selectedCustomer?.default_language || "tr",
+    corporate_form: selectedCustomer?.corporate_form || "",
+    country: selectedCustomer?.country || "TR",
+    party_type: selectedCustomer?.party_type || "",
+    category: selectedCustomer?.category || "",
+    check_limit: selectedCustomer?.check_limit || "",
+    limit_control_type: selectedCustomer?.limit_control_type || "",
+    identifier_reference: selectedCustomer?.identifier_reference || ""
   });
 
-  // Seçili şirket değiştiğinde formData'yı güncelle
+  // Seçili müşteri değiştiğinde formData'yı güncelle
   useEffect(() => {
-    if (selectedCompany) {
+    if (selectedCustomer) {
       const newFormData = {
-        default_language: selectedCompany.default_language || "tr",
-        logotype: selectedCompany.logotype || "",
-        corporate_form: selectedCompany.corporate_form || "",
-        country: selectedCompany.country || "TR",
-        localization_country: selectedCompany.localization_country || "TR"
+        default_language: selectedCustomer.default_language || "tr",
+        corporate_form: selectedCustomer.corporate_form || "",
+        country: selectedCustomer.country || "TR",
+        party_type: selectedCustomer.party_type || "",
+        category: selectedCustomer.category || "",
+        check_limit: selectedCustomer.check_limit || "",
+        limit_control_type: selectedCustomer.limit_control_type || "",
+        identifier_reference: selectedCustomer.identifier_reference || ""
       };
       setFormData(newFormData);
       if (onFormDataChange) {
         onFormDataChange(newFormData);
       }
     }
-  }, [selectedCompany, onFormDataChange]);
+  }, [selectedCustomer, onFormDataChange]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -82,7 +96,7 @@ const GeneralTab = ({
         gridTemplateColumns: "1fr", 
         gap: "15px" 
       }}>
-        {selectedCompany ? (
+        {selectedCustomer ? (
           <>
             {/* İlk Satır */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
@@ -124,6 +138,7 @@ const GeneralTab = ({
                     fontSize: "0.9rem"
                   }}
                 >
+                  <option value="">Select</option>
                   <option value="as">Anonim Şirket (A.Ş.)</option>
                   <option value="ltd">Limited Şirket (Ltd. Şti.)</option>
                   <option value="joint">Kollektif Şirket</option>
@@ -131,6 +146,28 @@ const GeneralTab = ({
                   <option value="cooperative">Kooperatif</option>
                   <option value="branch">Şube</option>
                   <option value="individual">Şahıs Şirketi</option>
+                </select>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Party Type</label>
+                <select
+                  name="party_type"
+                  value={formData.party_type}
+                  onChange={handleInputChange}
+                  style={{
+                    padding: "10px",
+                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                    border: "1px solid #334155",
+                    borderRadius: "6px",
+                    color: "#f1f5f9",
+                    fontSize: "0.9rem"
+                  }}
+                >
+                  <option value="">Select</option>
+                  <option value="company">Company</option>
+                  <option value="individual">Individual</option>
+                  <option value="government">Government</option>
+                  <option value="non_profit">Non-Profit</option>
                 </select>
               </div>
             </div>
@@ -167,10 +204,10 @@ const GeneralTab = ({
                 </select>
               </div>
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Localization Country</label>
+                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Category</label>
                 <select
-                  name="localization_country"
-                  value={formData.localization_country}
+                  name="category"
+                  value={formData.category}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -181,30 +218,19 @@ const GeneralTab = ({
                     fontSize: "0.9rem"
                   }}
                 >
-                  <option value="TR">Türkiye</option>
-                  <option value="US">United States</option>
-                  <option value="DE">Germany</option>
-                  <option value="FR">France</option>
-                  <option value="GB">United Kingdom</option>
-                  <option value="IT">Italy</option>
-                  <option value="ES">Spain</option>
-                  <option value="NL">Netherlands</option>
-                  <option value="BE">Belgium</option>
-                  <option value="CH">Switzerland</option>
-                  <option value="AE">United Arab Emirates</option>
-                  <option value="SA">Saudi Arabia</option>
+                  <option value="">Select</option>
+                  <option value="regular">Regular</option>
+                  <option value="vip">VIP</option>
+                  <option value="wholesale">Wholesale</option>
+                  <option value="retail">Retail</option>
+                  <option value="corporate">Corporate</option>
                 </select>
               </div>
-            </div>
-
-            {/* Üçüncü Satır - Logotype */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Logotype URL</label>
-                <input
-                  type="text"
-                  name="logotype"
-                  value={formData.logotype}
+                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Check Limit</label>
+                <select
+                  name="check_limit"
+                  value={formData.check_limit}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -214,46 +240,60 @@ const GeneralTab = ({
                     color: "#f1f5f9",
                     fontSize: "0.9rem"
                   }}
-                  placeholder="https://example.com/logo.png"
+                >
+                  <option value="">Select</option>
+                  <option value="no_limit">No Limit</option>
+                  <option value="warning">Warning Only</option>
+                  <option value="block">Block</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Üçüncü Satır */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Limit Control Type</label>
+                <select
+                  name="limit_control_type"
+                  value={formData.limit_control_type}
+                  onChange={handleInputChange}
+                  style={{
+                    padding: "10px",
+                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                    border: "1px solid #334155",
+                    borderRadius: "6px",
+                    color: "#f1f5f9",
+                    fontSize: "0.9rem"
+                  }}
+                >
+                  <option value="">Select</option>
+                  <option value="credit_limit">Credit Limit</option>
+                  <option value="order_limit">Order Limit</option>
+                  <option value="both">Both</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Identifier Reference</label>
+                <input
+                  type="text"
+                  name="identifier_reference"
+                  value={formData.identifier_reference}
+                  onChange={handleInputChange}
+                  style={{
+                    padding: "10px",
+                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                    border: "1px solid #334155",
+                    borderRadius: "6px",
+                    color: "#f1f5f9",
+                    fontSize: "0.9rem"
+                  }}
+                  placeholder="Vergi no, TC kimlik no, vb."
                 />
               </div>
               {/* Boş sütun - denge için */}
               <div></div>
             </div>
-
-            {/* Logotype önizleme (eğer URL varsa) */}
-            {formData.logotype && (
-              <div style={{ display: "flex", flexDirection: "column", marginTop: "10px" }}>
-                <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Logotype Preview</label>
-                <div style={{
-                  padding: "15px",
-                  backgroundColor: "rgba(30, 41, 59, 0.8)",
-                  border: "1px solid #334155",
-                  borderRadius: "6px",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  minHeight: "100px"
-                }}>
-                  <img 
-                    src={formData.logotype} 
-                    alt="Company Logo" 
-                    style={{
-                      maxWidth: "150px",
-                      maxHeight: "80px",
-                      objectFit: "contain"
-                    }}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                      const parent = (e.target as HTMLImageElement).parentElement;
-                      if (parent) {
-                        parent.innerHTML = '<div style="color: #94a3b8; text-align: center;"><i class="fas fa-image" style="font-size: 2rem; margin-bottom: 5px;"></i><p>Logo cannot be loaded</p></div>';
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            )}
           </>
         ) : (
           <div style={{ 
@@ -266,8 +306,8 @@ const GeneralTab = ({
             justifyContent: "center",
             alignItems: "center"
           }}>
-            <i className="fas fa-building" style={{ fontSize: "2.5rem", marginBottom: "10px" }}></i>
-            <p>Düzenlemek için bir şirket seçin</p>
+            <i className="fas fa-users" style={{ fontSize: "2.5rem", marginBottom: "10px" }}></i>
+            <p>Düzenlemek için bir müşteri seçin</p>
           </div>
         )}
       </div>
@@ -276,10 +316,10 @@ const GeneralTab = ({
 };
 
 // AddressTab bileşeni
-const AddressTab = ({ selectedCompany }: { selectedCompany: Company | null }) => {
+const AddressTab = ({ selectedCustomer }: { selectedCustomer: Customer | null }) => {
   return (
     <div style={{ padding: "15px 0", minHeight: "250px" }}>
-      {selectedCompany ? (
+      {selectedCustomer ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Adres</label>
@@ -311,6 +351,21 @@ const AddressTab = ({ selectedCompany }: { selectedCompany: Company | null }) =>
               placeholder="Şehir"
             />
           </div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Posta Kodu</label>
+            <input
+              type="text"
+              style={{
+                padding: "10px",
+                backgroundColor: "rgba(30, 41, 59, 0.8)",
+                border: "1px solid #334155",
+                borderRadius: "6px",
+                color: "#f1f5f9",
+                fontSize: "0.9rem"
+              }}
+              placeholder="Posta kodu"
+            />
+          </div>
         </div>
       ) : (
         <div style={{ 
@@ -324,56 +379,128 @@ const AddressTab = ({ selectedCompany }: { selectedCompany: Company | null }) =>
           alignItems: "center"
         }}>
           <i className="fas fa-map-marker-alt" style={{ fontSize: "2.5rem", marginBottom: "10px" }}></i>
-          <p>Adres bilgilerini görmek için bir şirket seçin</p>
+          <p>Adres bilgilerini görmek için bir müşteri seçin</p>
         </div>
       )}
     </div>
   );
 };
 
-const tabs = ["General", "Address"];
+// ContactTab bileşeni
+const ContactTab = ({ selectedCustomer }: { selectedCustomer: Customer | null }) => {
+  return (
+    <div style={{ padding: "15px 0", minHeight: "250px" }}>
+      {selectedCustomer ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Telefon</label>
+            <input
+              type="text"
+              style={{
+                padding: "10px",
+                backgroundColor: "rgba(30, 41, 59, 0.8)",
+                border: "1px solid #334155",
+                borderRadius: "6px",
+                color: "#f1f5f9",
+                fontSize: "0.9rem"
+              }}
+              placeholder="Telefon numarası"
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Email</label>
+            <input
+              type="email"
+              style={{
+                padding: "10px",
+                backgroundColor: "rgba(30, 41, 59, 0.8)",
+                border: "1px solid #334155",
+                borderRadius: "6px",
+                color: "#f1f5f9",
+                fontSize: "0.9rem"
+              }}
+              placeholder="Email adresi"
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Web Sitesi</label>
+            <input
+              type="text"
+              style={{
+                padding: "10px",
+                backgroundColor: "rgba(30, 41, 59, 0.8)",
+                border: "1px solid #334155",
+                borderRadius: "6px",
+                color: "#f1f5f9",
+                fontSize: "0.9rem"
+              }}
+              placeholder="Web sitesi URL"
+            />
+          </div>
+        </div>
+      ) : (
+        <div style={{ 
+          textAlign: "center", 
+          padding: "30px 0", 
+          color: "#94a3b8",
+          minHeight: "250px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center"
+        }}>
+          <i className="fas fa-address-book" style={{ fontSize: "2.5rem", marginBottom: "10px" }}></i>
+          <p>İletişim bilgilerini görmek için bir müşteri seçin</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
-export default function CompanyPage() {
+const tabs = ["General", "Address", "Contact"];
+
+export default function CustomerPage() {
   const [activeTab, setActiveTab] = useState("General");
   
-  // SearchList'ten seçilen şirket state'i
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  // SearchList'ten seçilen müşteri state'i
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSearchListVisible, setIsSearchListVisible] = useState(false);
 
-  // PostgreSQL'den gelen şirket verileri
-  const [companies, setCompanies] = useState<Company[]>([]);
+  // PostgreSQL'den gelen müşteri verileri
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // GeneralTab form verileri
   const [generalTabFormData, setGeneralTabFormData] = useState<any>(null);
 
-  // Düzenlenen şirket bilgileri
-  const [editingCompanyData, setEditingCompanyData] = useState({
-    company: "",
+  // Düzenlenen müşteri bilgileri
+  const [editingCustomerData, setEditingCustomerData] = useState({
+    customer_id: "",
     name: "",
     association_no: ""
   });
 
-  // PostgreSQL'den şirket verilerini çek
+  // PostgreSQL'den müşteri verilerini çek
   useEffect(() => {
-    fetchCompanies();
+    fetchCustomers();
   }, []);
 
   useEffect(() => {
-    if (selectedCompany) {
-      setEditingCompanyData({
-        company: selectedCompany.company,
-        name: selectedCompany.name,
-        association_no: selectedCompany.association_no || ""
+    if (selectedCustomer) {
+      setEditingCustomerData({
+        customer_id: selectedCustomer.customer_id,
+        name: selectedCustomer.name,
+        association_no: selectedCustomer.association_no || ""
       });
     }
-  }, [selectedCompany]);
+  }, [selectedCustomer]);
 
-  const fetchCompanies = async () => {
+  const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5217/api/company');
+      // API endpoint'ini customer_info tablosuna göre güncelleyin
+      const response = await fetch('http://localhost:5217/api/customer');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -381,47 +508,52 @@ export default function CompanyPage() {
       
       const data = await response.json();
       
-      const formattedCompanies: Company[] = data.map((company: any, index: number) => ({
+      const formattedCustomers: Customer[] = data.map((customer: any, index: number) => ({
         id: index + 1,
-        company: company.companyId || company.company || "",
-        name: company.name || "",
-        association_no: company.associationNo || company.association_no || "",
-        default_language: company.defaultLanguage || company.default_language || "tr",
-        logotype: company.logotype || "",
-        corporate_form: company.corporateForm || company.corporate_form || "",
-        country: company.country || "TR",
-        localization_country: company.localizationCountry || company.localization_country || "TR",
-        creation_date: company.creationDate || company.creation_date || "",
-        created_by: company.createdBy || company.created_by || "",
-        rowversion: company.rowversion || 1,
-        rowkey: company.rowkey || ""
+        customer_id: customer.customerId || customer.customer_id || "",
+        name: customer.name || "",
+        association_no: customer.associationNo || customer.association_no || "",
+        corporate_form: customer.corporateForm || customer.corporate_form || "",
+        country: customer.country || "TR",
+        party_type: customer.partyType || customer.party_type || "",
+        category: customer.category || "",
+        check_limit: customer.checkLimit || customer.check_limit || "",
+        limit_control_type: customer.limitControlType || customer.limit_control_type || "",
+        default_language: customer.defaultLanguage || customer.default_language || "tr",
+        created_by: customer.createdBy || customer.created_by || "",
+        changed_by: customer.changedBy || customer.changed_by || "",
+        creation_date: customer.creationDate || customer.creation_date || "",
+        identifier_reference: customer.identifierReference || customer.identifier_reference || "",
+        rowversion: customer.rowversion || new Date(),
+        rowkey: customer.rowkey || "",
+        rowtype: customer.rowtype || ""
       }));
       
-      setCompanies(formattedCompanies);
+      setCustomers(formattedCustomers);
       setError(null);
     } catch (err) {
-      console.error("Şirket verileri çekilirken hata:", err);
+      console.error("Müşteri verileri çekilirken hata:", err);
       setError(err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu");
-      setCompanies([]);
+      setCustomers([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const searchListItems = companies.map(company => ({
-    id: company.id,
-    code: company.company,
-    name: company.name,
-    description: company.association_no ? `Assoc No: ${company.association_no}` : "No association number",
-    originalData: company
+  const searchListItems = customers.map(customer => ({
+    id: customer.id,
+    code: customer.customer_id,
+    name: customer.name,
+    description: customer.association_no ? `Assoc No: ${customer.association_no}` : "No association number",
+    originalData: customer
   }));
 
-  const handleCompanySelect = (item: any) => {
-    const selected = companies.find(c => c.id === item.id);
+  const handleCustomerSelect = (item: any) => {
+    const selected = customers.find(c => c.id === item.id);
     if (selected) {
-      setSelectedCompany(selected);
-      setEditingCompanyData({
-        company: selected.company,
+      setSelectedCustomer(selected);
+      setEditingCustomerData({
+        customer_id: selected.customer_id,
         name: selected.name,
         association_no: selected.association_no || ""
       });
@@ -432,66 +564,69 @@ export default function CompanyPage() {
     setIsSearchListVisible(!isSearchListVisible);
   };
 
-  // Şirket silme
-  const handleDeleteCompany = async (id: number) => {
-    if (window.confirm("Bu şirketi silmek istediğinize emin misiniz?")) {
+  // Müşteri silme
+  const handleDeleteCustomer = async (id: number) => {
+    if (window.confirm("Bu müşteriyi silmek istediğinize emin misiniz?")) {
       try {
-        const companyToDelete = companies.find(c => c.id === id);
-        if (!companyToDelete) return;
+        const customerToDelete = customers.find(c => c.id === id);
+        if (!customerToDelete) return;
 
-        const response = await fetch(`http://localhost:5217/api/company/${companyToDelete.company}`, {
+        const response = await fetch(`http://localhost:5217/api/customer/${customerToDelete.customer_id}`, {
           method: 'DELETE',
         });
 
         if (response.ok) {
-          await fetchCompanies();
+          await fetchCustomers();
           
-          if (selectedCompany?.id === id) {
-            setSelectedCompany(null);
-            setEditingCompanyData({
-              company: "",
+          if (selectedCustomer?.id === id) {
+            setSelectedCustomer(null);
+            setEditingCustomerData({
+              customer_id: "",
               name: "",
               association_no: ""
             });
           }
           
-          alert("Şirket başarıyla silindi!");
+          alert("Müşteri başarıyla silindi!");
         } else {
           const errorData = await response.json();
           throw new Error(errorData.message || "Silme işlemi başarısız oldu");
         }
       } catch (err) {
-        console.error("Şirket silinirken hata:", err);
-        alert(err instanceof Error ? err.message : "Şirket silinirken bir hata oluştu!");
+        console.error("Müşteri silinirken hata:", err);
+        alert(err instanceof Error ? err.message : "Müşteri silinirken bir hata oluştu!");
       }
     }
   };
 
-  // Şirket alanlarını güncelleme
-  const handleUpdateCompanyField = (field: keyof typeof editingCompanyData, value: string) => {
-    setEditingCompanyData(prev => ({
+  // Müşteri alanlarını güncelleme
+  const handleUpdateCustomerField = (field: keyof typeof editingCustomerData, value: string) => {
+    setEditingCustomerData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  // Şirket düzenleme kaydetme
-  const handleSaveCompanyFields = async () => {
-    if (!selectedCompany) return;
+  // Müşteri düzenleme kaydetme
+  const handleSaveCustomerFields = async () => {
+    if (!selectedCustomer) return;
 
     try {
-      const updateDto: CompanyUpdateDto = {
-        name: editingCompanyData.name,
-        associationNo: editingCompanyData.association_no,
-        defaultLanguage: selectedCompany.default_language,
-        logotype: selectedCompany.logotype,
-        corporateForm: selectedCompany.corporate_form,
-        country: selectedCompany.country,
-        localizationCountry: selectedCompany.localization_country,
-        rowversion: selectedCompany.rowversion || 1
+      const updateDto: CustomerUpdateDto = {
+        name: editingCustomerData.name,
+        associationNo: editingCustomerData.association_no,
+        corporateForm: selectedCustomer.corporate_form,
+        country: selectedCustomer.country,
+        partyType: selectedCustomer.party_type,
+        category: selectedCustomer.category,
+        checkLimit: selectedCustomer.check_limit,
+        limitControlType: selectedCustomer.limit_control_type,
+        defaultLanguage: selectedCustomer.default_language,
+        identifierReference: selectedCustomer.identifier_reference,
+        rowversion: selectedCustomer.rowversion
       };
 
-      const response = await fetch(`http://localhost:5217/api/company/${editingCompanyData.company}`, {
+      const response = await fetch(`http://localhost:5217/api/customer/${editingCustomerData.customer_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -500,75 +635,81 @@ export default function CompanyPage() {
       });
 
       if (response.ok) {
-        await fetchCompanies();
+        await fetchCustomers();
         
-        const updatedCompany = await response.json();
-        const formattedCompany: Company = {
-          ...selectedCompany,
-          company: updatedCompany.companyId || updatedCompany.company,
-          name: updatedCompany.name,
-          association_no: updatedCompany.associationNo,
-          rowversion: updatedCompany.rowversion || selectedCompany.rowversion
+        const updatedCustomer = await response.json();
+        const formattedCustomer: Customer = {
+          ...selectedCustomer,
+          customer_id: updatedCustomer.customerId || updatedCustomer.customer_id,
+          name: updatedCustomer.name,
+          association_no: updatedCustomer.associationNo,
+          rowversion: updatedCustomer.rowversion || selectedCustomer.rowversion
         };
         
-        setSelectedCompany(formattedCompany);
+        setSelectedCustomer(formattedCustomer);
         alert("Değişiklikler başarıyla kaydedildi!");
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "Güncelleme işlemi başarısız oldu");
       }
     } catch (err) {
-      console.error("Şirket güncellenirken hata:", err);
+      console.error("Müşteri güncellenirken hata:", err);
       alert(err instanceof Error ? err.message : "Değişiklikler kaydedilirken bir hata oluştu!");
     }
   };
 
-  // Tüm değişiklikleri kaydet (hem GeneralTab hem company fields)
+  // Tüm değişiklikleri kaydet (hem GeneralTab hem customer fields)
   const handleSaveAll = async () => {
-    if (!selectedCompany) {
-      alert("Lütfen önce bir şirket seçin!");
+    if (!selectedCustomer) {
+      alert("Lütfen önce bir müşteri seçin!");
       return;
     }
 
     try {
-      // Company fields için updateDto
-      const companyUpdateDto: CompanyUpdateDto = {
-        name: editingCompanyData.name,
-        associationNo: editingCompanyData.association_no,
-        defaultLanguage: generalTabFormData?.default_language || selectedCompany.default_language,
-        logotype: generalTabFormData?.logotype || selectedCompany.logotype,
-        corporateForm: generalTabFormData?.corporate_form || selectedCompany.corporate_form,
-        country: generalTabFormData?.country || selectedCompany.country,
-        localizationCountry: generalTabFormData?.localization_country || selectedCompany.localization_country,
-        rowversion: selectedCompany.rowversion || 1
+      // Customer fields için updateDto
+      const customerUpdateDto: CustomerUpdateDto = {
+        name: editingCustomerData.name,
+        associationNo: editingCustomerData.association_no,
+        corporateForm: generalTabFormData?.corporate_form || selectedCustomer.corporate_form,
+        country: generalTabFormData?.country || selectedCustomer.country,
+        partyType: generalTabFormData?.party_type || selectedCustomer.party_type,
+        category: generalTabFormData?.category || selectedCustomer.category,
+        checkLimit: generalTabFormData?.check_limit || selectedCustomer.check_limit,
+        limitControlType: generalTabFormData?.limit_control_type || selectedCustomer.limit_control_type,
+        defaultLanguage: generalTabFormData?.default_language || selectedCustomer.default_language,
+        identifierReference: generalTabFormData?.identifier_reference || selectedCustomer.identifier_reference,
+        rowversion: selectedCustomer.rowversion
       };
 
-      const response = await fetch(`http://localhost:5217/api/company/${editingCompanyData.company}`, {
+      const response = await fetch(`http://localhost:5217/api/customer/${editingCustomerData.customer_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(companyUpdateDto),
+        body: JSON.stringify(customerUpdateDto),
       });
 
       if (response.ok) {
-        await fetchCompanies();
+        await fetchCustomers();
         
-        const updatedCompany = await response.json();
-        const formattedCompany: Company = {
-          ...selectedCompany,
-          company: updatedCompany.companyId || updatedCompany.company,
-          name: updatedCompany.name,
-          association_no: updatedCompany.associationNo,
-          default_language: updatedCompany.defaultLanguage || selectedCompany.default_language,
-          logotype: updatedCompany.logotype || selectedCompany.logotype,
-          corporate_form: updatedCompany.corporateForm || selectedCompany.corporate_form,
-          country: updatedCompany.country || selectedCompany.country,
-          localization_country: updatedCompany.localizationCountry || selectedCompany.localization_country,
-          rowversion: updatedCompany.rowversion || selectedCompany.rowversion
+        const updatedCustomer = await response.json();
+        const formattedCustomer: Customer = {
+          ...selectedCustomer,
+          customer_id: updatedCustomer.customerId || updatedCustomer.customer_id,
+          name: updatedCustomer.name,
+          association_no: updatedCustomer.associationNo,
+          corporate_form: updatedCustomer.corporateForm || selectedCustomer.corporate_form,
+          country: updatedCustomer.country || selectedCustomer.country,
+          party_type: updatedCustomer.partyType || selectedCustomer.party_type,
+          category: updatedCustomer.category || selectedCustomer.category,
+          check_limit: updatedCustomer.checkLimit || selectedCustomer.check_limit,
+          limit_control_type: updatedCustomer.limitControlType || selectedCustomer.limit_control_type,
+          default_language: updatedCustomer.defaultLanguage || selectedCustomer.default_language,
+          identifier_reference: updatedCustomer.identifierReference || selectedCustomer.identifier_reference,
+          rowversion: updatedCustomer.rowversion || selectedCustomer.rowversion
         };
         
-        setSelectedCompany(formattedCompany);
+        setSelectedCustomer(formattedCustomer);
         alert("Tüm değişiklikler başarıyla kaydedildi!");
       } else {
         const errorData = await response.json();
@@ -591,13 +732,13 @@ export default function CompanyPage() {
       {/* SearchList Panel - Sadece görünürse göster */}
       {isSearchListVisible && (
         <SearchList
-          title="Şirket Arama"
+          title="Müşteri Arama"
           items={searchListItems}
-          onSelect={handleCompanySelect}
+          onSelect={handleCustomerSelect}
           onToggle={handleToggleSearchList}
           searchFields={["code", "name", "description"]}
           displayFields={["code", "name"]}
-          icon="fas fa-building"
+          icon="fas fa-users"
         />
       )}
 
@@ -694,7 +835,7 @@ export default function CompanyPage() {
               fontSize: "1.1rem",
               flexShrink: 0
             }}>
-              <i className="fas fa-building"></i>
+              <i className="fas fa-users"></i>
             </div>
             <div style={{ 
               fontSize: "1.3rem",
@@ -704,7 +845,7 @@ export default function CompanyPage() {
               flex: 1,
               minWidth: "200px"
             }}>
-              Şirket Tanımları
+              Müşteri Tanımları
             </div>
             <div style={{ 
               display: "flex", 
@@ -751,9 +892,9 @@ export default function CompanyPage() {
               ) : (
                 <button
                   onClick={handleSaveAll}
-                  disabled={!selectedCompany}
+                  disabled={!selectedCustomer}
                   style={{
-                    background: selectedCompany 
+                    background: selectedCustomer 
                       ? "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)" 
                       : "#64748b",
                     color: "white",
@@ -761,12 +902,12 @@ export default function CompanyPage() {
                     borderRadius: "6px",
                     padding: "8px 15px",
                     fontSize: "0.85rem",
-                    cursor: selectedCompany ? "pointer" : "not-allowed",
+                    cursor: selectedCustomer ? "pointer" : "not-allowed",
                     display: "flex",
                     alignItems: "center",
                     gap: "6px",
                     flexShrink: 0,
-                    opacity: selectedCompany ? 1 : 0.6
+                    opacity: selectedCustomer ? 1 : 0.6
                   }}
                 >
                   <i className="fas fa-save"></i>
@@ -783,7 +924,7 @@ export default function CompanyPage() {
             padding: "12px",
             backgroundColor: "rgba(30, 41, 59, 0.5)",
             borderRadius: "6px",
-            borderLeft: selectedCompany ? "3px solid #10b981" : "3px solid #38bdf8",
+            borderLeft: selectedCustomer ? "3px solid #10b981" : "3px solid #38bdf8",
             fontSize: "0.85rem"
           }}>
             <div style={{ 
@@ -799,15 +940,15 @@ export default function CompanyPage() {
                   <span>Veriler yükleniyor...</span>
                 ) : error ? (
                   <span style={{ color: "#ef4444" }}>Hata: {error}</span>
-                ) : companies.length === 0 ? (
-                  <span>Veritabanında şirket bulunamadı.</span>
-                ) : selectedCompany ? (
-                  `"${selectedCompany.company} - ${selectedCompany.name}" şirketinin bilgilerini düzenleyin.`
+                ) : customers.length === 0 ? (
+                  <span>Veritabanında müşteri bulunamadı.</span>
+                ) : selectedCustomer ? (
+                  `"${selectedCustomer.customer_id} - ${selectedCustomer.name}" müşterisinin bilgilerini düzenleyin.`
                 ) : (
-                  "Düzenlemek için soldaki listeden bir şirket seçin."
+                  "Düzenlemek için soldaki listeden bir müşteri seçin."
                 )}
               </div>
-              {selectedCompany && (
+              {selectedCustomer && (
                 <div style={{ 
                   backgroundColor: "rgba(16, 185, 129, 0.2)", 
                   padding: "4px 8px", 
@@ -819,14 +960,14 @@ export default function CompanyPage() {
                   flexShrink: 0
                 }}>
                   <i className="fas fa-check-circle" style={{ color: "#10b981" }}></i>
-                  <span>Seçili: <strong>{selectedCompany.company}</strong></span>
+                  <span>Seçili: <strong>{selectedCustomer.customer_id}</strong></span>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* COMPANY CARD - Company Code, Name, Association No - DÜZENLENEBİLİR ALANLAR */}
+        {/* CUSTOMER CARD - Customer ID, Name, Association No - DÜZENLENEBİLİR ALANLAR */}
         <div style={{
           background: "#1e293b",
           borderRadius: "12px",
@@ -859,7 +1000,7 @@ export default function CompanyPage() {
               fontSize: "1.1rem",
               flexShrink: 0
             }}>
-              <i className="fas fa-building"></i>
+              <i className="fas fa-user-tie"></i>
             </div>
             <div style={{ 
               fontSize: "1.3rem",
@@ -869,11 +1010,11 @@ export default function CompanyPage() {
               flex: 1,
               minWidth: "200px"
             }}>
-              {selectedCompany ? `Şirket Bilgileri - ${selectedCompany.company}` : "Şirket Bilgileri"}
+              {selectedCustomer ? `Müşteri Bilgileri - ${selectedCustomer.customer_id}` : "Müşteri Bilgileri"}
             </div>
-            {selectedCompany && (
+            {selectedCustomer && (
               <button
-                onClick={handleSaveCompanyFields}
+                onClick={handleSaveCustomerFields}
                 style={{
                   background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                   color: "white",
@@ -889,13 +1030,13 @@ export default function CompanyPage() {
                 }}
               >
                 <i className="fas fa-check"></i>
-                <span>Şirket Bilgilerini Kaydet</span>
+                <span>Müşteri Bilgilerini Kaydet</span>
               </button>
             )}
           </div>
           
-          {/* ŞİRKET BİLGİLERİ - DÜZENLENEBİLİR ALANLAR */}
-          {selectedCompany ? (
+          {/* MÜŞTERİ BİLGİLERİ - DÜZENLENEBİLİR ALANLAR */}
+          {selectedCustomer ? (
             <div style={{ 
               backgroundColor: "rgba(30, 41, 59, 0.3)",
               borderRadius: "8px",
@@ -910,18 +1051,18 @@ export default function CompanyPage() {
                 marginBottom: "15px"
               }}>
                 <i className="fas fa-edit" style={{ marginRight: "8px", color: "#38bdf8" }}></i>
-                Şirket Temel Bilgileri
+                Müşteri Temel Bilgileri
               </h4>
               
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "15px" }}>
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.85rem" }}>
-                    Company Code <span style={{ color: "#ef4444" }}>*</span>
+                    Müşteri Kodu <span style={{ color: "#ef4444" }}>*</span>
                   </label>
                   <input
                     type="text"
-                    value={editingCompanyData.company}
-                    onChange={(e) => handleUpdateCompanyField('company', e.target.value)}
+                    value={editingCustomerData.customer_id}
+                    onChange={(e) => handleUpdateCustomerField('customer_id', e.target.value)}
                     style={{
                       width: "100%",
                       padding: "10px 12px",
@@ -934,17 +1075,17 @@ export default function CompanyPage() {
                     }}
                   />
                   <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "4px" }}>
-                    Şirketin benzersiz kodu
+                    Müşterinin benzersiz kodu
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.85rem" }}>
-                    Company Name <span style={{ color: "#ef4444" }}>*</span>
+                    Müşteri Adı <span style={{ color: "#ef4444" }}>*</span>
                   </label>
                   <input
                     type="text"
-                    value={editingCompanyData.name}
-                    onChange={(e) => handleUpdateCompanyField('name', e.target.value)}
+                    value={editingCustomerData.name}
+                    onChange={(e) => handleUpdateCustomerField('name', e.target.value)}
                     style={{
                       width: "100%",
                       padding: "10px 12px",
@@ -957,17 +1098,17 @@ export default function CompanyPage() {
                     }}
                   />
                   <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "4px" }}>
-                    Şirketin resmi adı
+                    Müşterinin resmi adı
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.85rem" }}>
-                    Association No
+                    İlişkilendirme No
                   </label>
                   <input
                     type="text"
-                    value={editingCompanyData.association_no}
-                    onChange={(e) => handleUpdateCompanyField('association_no', e.target.value)}
+                    value={editingCustomerData.association_no}
+                    onChange={(e) => handleUpdateCustomerField('association_no', e.target.value)}
                     style={{
                       width: "100%",
                       padding: "10px 12px",
@@ -994,7 +1135,7 @@ export default function CompanyPage() {
                 borderTop: "1px solid #334155"
               }}>
                 <button
-                  onClick={() => handleDeleteCompany(selectedCompany.id)}
+                  onClick={() => handleDeleteCustomer(selectedCustomer.id)}
                   style={{
                     background: "#ef4444",
                     color: "white",
@@ -1009,7 +1150,7 @@ export default function CompanyPage() {
                   }}
                 >
                   <i className="fas fa-trash"></i>
-                  <span>Şirketi Sil</span>
+                  <span>Müşteriyi Sil</span>
                 </button>
               </div>
             </div>
@@ -1028,12 +1169,12 @@ export default function CompanyPage() {
               justifyContent: "center",
               alignItems: "center"
             }}>
-              <i className="fas fa-building" style={{ fontSize: "2rem", marginBottom: "10px", color: "#64748b" }}></i>
-              <p>Düzenlemek için soldaki listeden bir şirket seçin</p>
+              <i className="fas fa-users" style={{ fontSize: "2rem", marginBottom: "10px", color: "#64748b" }}></i>
+              <p>Düzenlemek için soldaki listeden bir müşteri seçin</p>
             </div>
           )}
           
-          {/* Şirket sayısı bilgisi */}
+          {/* Müşteri sayısı bilgisi */}
           <div style={{ 
             fontSize: "0.85rem", 
             color: "#94a3b8", 
@@ -1043,7 +1184,7 @@ export default function CompanyPage() {
             marginTop: "10px"
           }}>
             <i className="fas fa-database" style={{ marginRight: "8px" }}></i>
-            <span>Toplam {companies.length} şirket bulundu</span>
+            <span>Toplam {customers.length} müşteri bulundu</span>
             {loading && (
               <span style={{ marginLeft: "15px" }}>
                 <i className="fas fa-spinner fa-spin"></i> Veriler güncelleniyor...
@@ -1094,6 +1235,7 @@ export default function CompanyPage() {
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
                     {tab === "General" && <i className="fas fa-cog"></i>}
                     {tab === "Address" && <i className="fas fa-map-marker-alt"></i>}
+                    {tab === "Contact" && <i className="fas fa-address-book"></i>}
                     <span>{tab}</span>
                   </div>
                 </button>
@@ -1105,11 +1247,12 @@ export default function CompanyPage() {
           <div style={{ minHeight: "300px" }}>
             {activeTab === "General" && (
               <GeneralTab 
-                selectedCompany={selectedCompany} 
+                selectedCustomer={selectedCustomer} 
                 onFormDataChange={setGeneralTabFormData}
               />
             )}
-            {activeTab === "Address" && <AddressTab selectedCompany={selectedCompany} />}
+            {activeTab === "Address" && <AddressTab selectedCustomer={selectedCustomer} />}
+            {activeTab === "Contact" && <ContactTab selectedCustomer={selectedCustomer} />}
           </div>
         </div>
       </div>

@@ -7,11 +7,60 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Erp.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class CreateCustomerInfoTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "company_tab",
+                columns: table => new
+                {
+                    company = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    name = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: false),
+                    creation_date = table.Column<DateOnly>(type: "date", nullable: false),
+                    association_no = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    default_language = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false),
+                    logotype = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: true),
+                    corporate_form = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: true),
+                    country = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false),
+                    created_by = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
+                    localization_country = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    rowversion = table.Column<decimal>(type: "numeric(22,0)", nullable: false),
+                    rowkey = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_company_tab", x => x.company);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "customer_info",
+                columns: table => new
+                {
+                    customer_id = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    name = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: false),
+                    association_no = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    corporate_form = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: true),
+                    country = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false, defaultValue: "TR"),
+                    party_type = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    category = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    check_limit = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    limit_control_type = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    default_language = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false, defaultValue: "tr"),
+                    created_by = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: false),
+                    changed_by = table.Column<string>(type: "character varying(80)", maxLength: 80, nullable: true),
+                    creation_date = table.Column<DateTime>(type: "date", nullable: false),
+                    identifier_reference = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: true),
+                    rowversion = table.Column<decimal>(type: "numeric(22,0)", nullable: false, defaultValue: 1m),
+                    rowkey = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    rowtype = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_customer_info", x => x.customer_id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "permissions",
                 columns: table => new
@@ -74,10 +123,10 @@ namespace Erp.Api.Migrations
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    username = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    username = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     password_hash = table.Column<string>(type: "text", nullable: false),
-                    status = table.Column<bool>(type: "boolean", nullable: false),
-                    role_id = table.Column<int>(type: "integer", nullable: false)
+                    role_id = table.Column<int>(type: "integer", nullable: true),
+                    status = table.Column<bool>(type: "boolean", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -86,8 +135,7 @@ namespace Erp.Api.Migrations
                         name: "FK_users_roles_role_id",
                         column: x => x.role_id,
                         principalTable: "roles",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "id");
                 });
 
             migrationBuilder.CreateIndex(
@@ -100,11 +148,23 @@ namespace Erp.Api.Migrations
                 name: "IX_users_role_id",
                 table: "users",
                 column: "role_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_users_username",
+                table: "users",
+                column: "username",
+                unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "company_tab");
+
+            migrationBuilder.DropTable(
+                name: "customer_info");
+
             migrationBuilder.DropTable(
                 name: "permissions");
 

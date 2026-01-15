@@ -93,6 +93,107 @@ namespace Erp.Api.Migrations
                     b.ToTable("company_tab", (string)null);
                 });
 
+            modelBuilder.Entity("Erp.Api.Models.CustomerInfo", b =>
+                {
+                    b.Property<string>("CustomerId")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("customer_id");
+
+                    b.Property<string>("AssociationNo")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("association_no");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("category");
+
+                    b.Property<string>("ChangedBy")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("changed_by");
+
+                    b.Property<string>("CheckLimit")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("check_limit");
+
+                    b.Property<string>("CorporateForm")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("corporate_form");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasDefaultValue("TR")
+                        .HasColumnName("country");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("date")
+                        .HasColumnName("creation_date");
+
+                    b.Property<string>("DefaultLanguage")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasDefaultValue("tr")
+                        .HasColumnName("default_language");
+
+                    b.Property<string>("IdentifierReference")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("identifier_reference");
+
+                    b.Property<string>("LimitControlType")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("limit_control_type");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("PartyType")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("party_type");
+
+                    b.Property<string>("Rowkey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("rowkey");
+
+                    b.Property<string>("Rowtype")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("rowtype");
+
+                    b.Property<decimal>("Rowversion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(22,0)")
+                        .HasDefaultValue(1m)
+                        .HasColumnName("rowversion");
+
+                    b.HasKey("CustomerId");
+
+                    b.ToTable("customer_info", (string)null);
+                });
+
             modelBuilder.Entity("Erp.Api.Models.Permission", b =>
                 {
                     b.Property<int>("Id")
