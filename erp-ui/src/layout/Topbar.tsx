@@ -11,6 +11,7 @@ const pathLabels: Record<string, string> = {
   orders: "Satış Siparişi",
   quotes: "Satış Teklifi",
   customer: "Müşteri", // DÜZELTİLDİ: customers -> customer
+  inventorypart: "Envanter Malzeme",
   warehouse: "Depo Yönetimi",
   invoices: "Fatura",
 };

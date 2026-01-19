@@ -11,6 +11,7 @@ import SalesOrders from "./modules/sales/SalesOrders";
 import SalesQuotes from "./modules/sales/SalesQuotes";
 import CustomerPage from "./modules/sales/customer/CustomerPage";
 import Warehouse from "./modules/invent/Warehouse";
+import InventoryPart from "./modules/invent/InventoryPart";
 import Invoices from "./modules/fin/Invoices";
 
 // 🔹 User modülü
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="/sales/orders" element={<SalesOrders />} />
         <Route path="/sales/quotes" element={<SalesQuotes />} />
         <Route path="/invent/warehouse" element={<Warehouse />} />
+        <Route path="/invent/inventorypart" element={<InventoryPart />} />
         <Route path="/fin/invoices" element={<Invoices />} />
         <Route path="/user/users" element={<CreateUserForm />} />
         

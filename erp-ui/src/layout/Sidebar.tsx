@@ -35,7 +35,7 @@ const staticModules: Record<string, ModuleData> = {
     label: "Stok",
     pages: {
       warehouse: { label: "Depo Yönetimi", actions: ["view", "edit"] },
-      products: { label: "Ürünler", actions: ["view", "create", "edit"] },
+      inventorypart: { label: "Envanter Malzeme", actions: ["view", "create", "edit"] },
       inventory: { label: "Stok Takip", actions: ["view", "edit"] },
       transfers: { label: "Transferler", actions: ["view", "create"] }
     }

@@ -17,6 +17,7 @@ namespace Erp.Api.Data
         public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
         public DbSet<Company> Companies => Set<Company>();
         public DbSet<CustomerInfo> Customers => Set<CustomerInfo>();
+        public DbSet<InventoryPart> InventoryParts => Set<InventoryPart>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -106,7 +107,7 @@ namespace Erp.Api.Data
                 e.Property(x => x.Rowkey).HasColumnName("rowkey").HasMaxLength(200).IsRequired();
             });
 
-            // CustomerInfo mapping - DÜZELTİLMİŞ
+            // CustomerInfo mapping
             modelBuilder.Entity<CustomerInfo>(e =>
             {
                 e.ToTable("customer_info");
@@ -167,7 +168,6 @@ namespace Erp.Api.Data
                     .HasColumnName("changed_by")
                     .HasMaxLength(80);
                     
-                // DateOnly için value converter EKLEYİN
                 e.Property(x => x.CreationDate)
                     .HasColumnName("creation_date")
                     .HasColumnType("date")
@@ -180,10 +180,9 @@ namespace Erp.Api.Data
                     .HasColumnName("identifier_reference")
                     .HasMaxLength(400);
                     
-                // ROWVERSION için DOĞRU MAPPING - DECIMAL olarak
                 e.Property(x => x.Rowversion)
                     .HasColumnName("rowversion")
-                    .HasColumnType("numeric(22,0)")  // numeric(22,0) olarak
+                    .HasColumnType("numeric(22,0)")
                     .IsRequired()
                     .HasDefaultValue(1);
                     
@@ -195,6 +194,174 @@ namespace Erp.Api.Data
                 e.Property(x => x.Rowtype)
                     .HasColumnName("rowtype")
                     .HasMaxLength(120);
+            });
+
+            // INVENTORY_PART mapping - SADELEŞTİRİLMİŞ
+            modelBuilder.Entity<InventoryPart>(e =>
+            {
+                e.ToTable("inventory_part");
+                e.HasKey(x => new { x.Contract, x.PartNo });
+
+                // Anahtar alanlar
+                e.Property(x => x.Contract)
+                    .HasColumnName("contract")
+                    .HasMaxLength(20)
+                    .IsRequired();
+                    
+                e.Property(x => x.PartNo)
+                    .HasColumnName("part_no")
+                    .HasMaxLength(100)
+                    .IsRequired();
+                
+                // Temel bilgiler
+                e.Property(x => x.AccountingGroup)
+                    .HasColumnName("accounting_group")
+                    .HasMaxLength(20);
+                    
+                e.Property(x => x.CountryOfOrigin)
+                    .HasColumnName("country_of_origin")
+                    .HasMaxLength(12);
+                    
+                e.Property(x => x.EstimatedMaterialCost)
+                    .HasColumnName("estimated_material_cost")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.PartProductCode)
+                    .HasColumnName("part_product_code")
+                    .HasMaxLength(20);
+                    
+                e.Property(x => x.PartProductFamily)
+                    .HasColumnName("part_product_family")
+                    .HasMaxLength(20);
+                    
+                e.Property(x => x.PartStatus)
+                    .HasColumnName("part_status")
+                    .HasMaxLength(4);
+                    
+                e.Property(x => x.PlannerBuyer)
+                    .HasColumnName("planner_buyer")
+                    .HasMaxLength(80);
+                    
+                e.Property(x => x.PrimeCommodity)
+                    .HasColumnName("prime_commodity")
+                    .HasMaxLength(20);
+                    
+                e.Property(x => x.SecondCommodity)
+                    .HasColumnName("second_commodity")
+                    .HasMaxLength(20);
+                
+                // Ölçü birimleri
+                e.Property(x => x.UnitMeas)
+                    .HasColumnName("unit_meas")
+                    .HasMaxLength(40);
+                    
+                e.Property(x => x.SalesUnitMeas)
+                    .HasColumnName("sales_unit_meas")
+                    .HasMaxLength(40);
+                
+                // Açıklamalar
+                e.Property(x => x.Description)
+                    .HasColumnName("description")
+                    .HasMaxLength(800);
+                
+                // Fiyat ve vergi
+                e.Property(x => x.ListPrice)
+                    .HasColumnName("list_price")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.ListPriceInclTax)
+                    .HasColumnName("list_price_incl_tax")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.PriceConvFactor)
+                    .HasColumnName("price_conv_factor")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.TaxCode)
+                    .HasColumnName("tax_code")
+                    .HasMaxLength(80);
+                    
+                e.Property(x => x.TaxClassId)
+                    .HasColumnName("tax_class_id")
+                    .HasMaxLength(80);
+                    
+                e.Property(x => x.SalesType)
+                    .HasColumnName("sales_type")
+                    .HasMaxLength(4000);
+                    
+                e.Property(x => x.SalesTypeDb)
+                    .HasColumnName("sales_type_db")
+                    .HasMaxLength(80);
+                
+                // Depolama gereksinimleri
+                e.Property(x => x.StorageWidthRequirement)
+                    .HasColumnName("storage_width_requirement")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.StorageHeightRequirement)
+                    .HasColumnName("storage_height_requirement")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.StorageDepthRequirement)
+                    .HasColumnName("storage_depth_requirement")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.StorageVolumeRequirement)
+                    .HasColumnName("storage_volume_requirement")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.StorageWeightRequirement)
+                    .HasColumnName("storage_weight_requirement")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.MinStorageTemperature)
+                    .HasColumnName("min_storage_temperature")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.MaxStorageTemperature)
+                    .HasColumnName("max_storage_temperature")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.MinStorageHumidity)
+                    .HasColumnName("min_storage_humidity")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.MaxStorageHumidity)
+                    .HasColumnName("max_storage_humidity")
+                    .HasColumnType("numeric(22,2)");
+                
+                // Paketleme
+                e.Property(x => x.StandardPutawayQty)
+                    .HasColumnName("standard_putaway_qty")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.StandardPackSize)
+                    .HasColumnName("standard_pack_size")
+                    .HasColumnType("numeric(22,2)");
+                
+                // Tarih ve süre
+                e.Property(x => x.CreateDate)
+                    .HasColumnName("create_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+                    
+                e.Property(x => x.ExpectedLeadtime)
+                    .HasColumnName("expected_leadtime")
+                    .HasColumnType("numeric(22,0)");
+                
+                // Sistem alanları
+                e.Property(x => x.Rowversion)
+                    .HasColumnName("rowversion")
+                    .HasColumnType("numeric(22,0)")
+                    .IsRequired()
+                    .HasDefaultValue(1);
+                    
+                e.Property(x => x.Rowkey)
+                    .HasColumnName("rowkey")
+                    .HasMaxLength(200)
+                    .IsRequired();
             });
         }
     }

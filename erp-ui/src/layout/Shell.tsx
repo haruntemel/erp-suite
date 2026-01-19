@@ -38,7 +38,7 @@ const Shell = () => {
       path: "/invent",
       children: [
         { name: "Depo Yönetimi", path: "/invent/warehouse" },
-        { name: "Ürünler", path: "/invent/products" },
+        { name: "Envanter Malzeme", path: "/invent/inventorypart" },
         { name: "Stok Takip", path: "/invent/inventory" },
         { name: "Transferler", path: "/invent/transfers" }
       ]

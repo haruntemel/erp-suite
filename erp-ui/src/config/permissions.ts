@@ -1,17 +1,25 @@
 // src/config/permissions.ts
 const permissions = {
   modules: {
+    enterp: {
+      label: "Uygulama Temel Kurgu",
+      pages: {
+        company: { label: "Şirket", actions: ["view", "create", "edit"] }
+      }
+    },
     sales: {
       label: "Satış",
       pages: {
         orders: { label: "Satış Siparişi", actions: ["view", "create", "edit"] },
-        quotes: { label: "Satış Teklifi", actions: ["view", "create"] }
+        quotes: { label: "Satış Teklifi", actions: ["view", "create"] },
+        customers: { label: "Müşteriler", actions: ["view", "create", "edit"] }
       }
     },
     invent: {
       label: "Stok",
       pages: {
-        warehouse: { label: "Depo Yönetimi", actions: ["view", "edit"] }
+        warehouse: { label: "Depo Yönetimi", actions: ["view", "edit"] },
+        inventorypart: { label: "Envanter Malzeme", actions: ["view", "create", "edit"] }
       }
     },
     fin: {
