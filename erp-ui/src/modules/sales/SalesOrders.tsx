@@ -372,6 +372,171 @@ export default function CustomerOrderPage() {
     }
   };
 
+// CustomerOrderLines sayfasından gelen sipariş seçimini dinle
+// CustomerOrderLines sayfasından gelen sipariş seçimini dinle
+useEffect(() => {
+  // 1. Message event'ini dinle
+  const handleMessage = (event: MessageEvent) => {
+    // Güvenlik kontrolü
+    if (event.origin !== window.location.origin && 
+        event.origin !== 'http://localhost:5173' && 
+        event.origin !== 'http://localhost:3000') {
+      return;
+    }
+    
+    if (event.data && event.data.type === 'SELECT_ORDER_FROM_LINES') {
+      const orderInfo = event.data.data;
+      console.log('📥 MessageEvent ile sipariş seçimi:', orderInfo);
+      handleAutoSelectOrder(orderInfo);
+    }
+  };
+  
+  // 2. localStorage'dan kontrol et
+  const checkLocalStorage = () => {
+    try {
+      const savedOrder = localStorage.getItem('autoSelectOrder');
+      if (savedOrder) {
+        const orderInfo = JSON.parse(savedOrder);
+        console.log('📥 localStorage ile sipariş seçimi:', orderInfo);
+        handleAutoSelectOrder(orderInfo);
+        
+        // Temizle
+        localStorage.removeItem('autoSelectOrder');
+      }
+    } catch (err) {
+      console.error('❌ localStorage okuma hatası:', err);
+      localStorage.removeItem('autoSelectOrder');
+    }
+  };
+  
+  // 3. URL parametrelerini kontrol et
+  const checkUrlParams = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const company = urlParams.get('company');
+    const orderNo = urlParams.get('orderNo');
+    const contract = urlParams.get('contract');
+    const fromLines = urlParams.get('fromCustomerOrderLines');
+    
+    if (fromLines && company && orderNo && contract) {
+      const orderInfo = {
+        company,
+        orderNo,
+        contract,
+        timestamp: Date.now(),
+        source: 'CustomerOrderLines'
+      };
+      console.log('📥 URL parametreleri ile sipariş seçimi:', orderInfo);
+      handleAutoSelectOrder(orderInfo);
+      
+      // URL'yi temizle (isteğe bağlı)
+      window.history.replaceState({}, '', '/sales/orders');
+    }
+  };
+  
+  // Otomatik sipariş seçimini işle
+  const handleAutoSelectOrder = async (orderInfo: any) => {
+    try {
+      // Eski verileri temizle (5 dakikadan eski)
+      if (Date.now() - orderInfo.timestamp > 300000) {
+        console.log('⏳ Sipariş bilgisi çok eski, yok sayılıyor');
+        return;
+      }
+      
+      console.log(`🔍 Otomatik sipariş yükleniyor: ${orderInfo.orderNo}`);
+      
+      // Siparişi API'den getir - customerorder endpoint'ini kullan
+      const response = await fetch(
+        `http://localhost:5217/api/customerorder/get?company=${encodeURIComponent(orderInfo.company)}&orderNo=${encodeURIComponent(orderInfo.orderNo)}&contract=${encodeURIComponent(orderInfo.contract)}`
+      );
+      
+      if (!response.ok) {
+        // Eğer yukarıdaki endpoint çalışmazsa, salesorder endpoint'ini dene
+        const response2 = await fetch(
+          `http://localhost:5217/api/salesorder/get?company=${encodeURIComponent(orderInfo.company)}&orderNo=${encodeURIComponent(orderInfo.orderNo)}&contract=${encodeURIComponent(orderInfo.contract)}`
+        );
+        
+        if (!response2.ok) {
+          throw new Error('Sipariş bulunamadı');
+        }
+        
+        const orderData = await response2.json();
+        processOrderData(orderData, orderInfo);
+      } else {
+        const orderData = await response.json();
+        processOrderData(orderData, orderInfo);
+      }
+      
+    } catch (error) {
+      console.error('❌ Sipariş yüklenemedi:', error);
+      // Hata durumunda kullanıcıya bilgi ver
+      setTimeout(() => {
+        alert(`Sipariş ${orderInfo.orderNo} otomatik olarak yüklenemedi.\nLütfen manuel olarak arayın.`);
+      }, 1000);
+    }
+  };
+  
+  // Sipariş verilerini işle
+  const processOrderData = (apiOrder: any, orderInfo: any) => {
+    console.log('✅ Sipariş bulundu:', apiOrder);
+    
+    // API verisini frontend formatına çevir
+    const order: CustomerOrder = {
+      id: customerOrders.length + 1,
+      Company: apiOrder.company || orderInfo.company,
+      OrderNo: apiOrder.orderNo || orderInfo.orderNo,
+      Contract: apiOrder.contract || orderInfo.contract,
+      CustomerNo: apiOrder.customerNo || "",
+      CustomerPoNo: apiOrder.customerPoNo || undefined,
+      DateEntered: apiOrder.dateEntered || new Date().toISOString().split('T')[0],
+      WantedDeliveryDate: apiOrder.wantedDeliveryDate || undefined,
+      PayTermBaseDate: apiOrder.payTermBaseDate || undefined,
+      CurrencyCode: apiOrder.currencyCode || undefined,
+      PayTermId: apiOrder.payTermId || undefined,
+      DeliveryTerms: apiOrder.deliveryTerms || undefined,
+      ShipViaCode: apiOrder.shipViaCode || undefined,
+      DeliveryCountryCode: apiOrder.deliveryCountryCode || undefined,
+      OrderId: apiOrder.orderId || undefined,
+      AuthorizeCode: apiOrder.authorizeCode || undefined,
+      SalesmanCode: apiOrder.salesmanCode || undefined,
+      BillAddrNo: apiOrder.billAddrNo || undefined,
+      ShipAddrNo: apiOrder.shipAddrNo || undefined,
+      InternalPoNo: apiOrder.internalPoNo || undefined,
+      NoteText: apiOrder.noteText || undefined,
+      Rowstate: apiOrder.rowstate || "ACTIVE",
+      CreatedBy: apiOrder.createdBy || "admin",
+      Rowversion: apiOrder.rowversion || 1,
+      Rowkey: apiOrder.rowkey || `order-${Date.now()}`
+    };
+    
+    // Siparişi seç
+    setSelectedOrder(order);
+    setEditingOrder(order);
+    
+    console.log('✅ Sipariş başarıyla seçildi:', order);
+    
+    // Başarı mesajı
+    setTimeout(() => {
+      alert(`✅ Sipariş ${order.OrderNo} otomatik olarak yüklendi!`);
+    }, 500);
+  };
+  
+  // Event listener'ları ekle
+  window.addEventListener('message', handleMessage);
+  
+  // Sayfa yüklendiğinde kontrolleri yap
+  const timer = setTimeout(() => {
+    checkUrlParams();
+    checkLocalStorage();
+  }, 1000);
+  
+  // Cleanup
+  return () => {
+    window.removeEventListener('message', handleMessage);
+    clearTimeout(timer);
+  };
+}, [customerOrders.length]);
+// CustomerOrderLines sayfasından gelen sipariş seçimini dinle
+
 const fetchOrderLines = async (company: string, orderNo: string, contract: string) => {
   try {
     const response = await fetch(`http://localhost:5217/api/customerorderline/order/${company}/${orderNo}/${contract}`);

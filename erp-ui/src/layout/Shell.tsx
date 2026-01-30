@@ -26,6 +26,7 @@ const Shell = () => {
       path: "/sales",
       children: [
         { name: "Satış Siparişi", path: "/sales/orders" },
+        { name: "Satış Sipariş Satırları", path: "/sales/customerorderlines" },
         { name: "Satış Teklifi", path: "/sales/quotes" },
         { name: "Müşteriler", path: "/sales/customer" }, // DÜZELTİLDİ: /sales/customer/customers -> /sales/customer
         { name: "Satış Faturaları", path: "/sales/invoices" }

@@ -13,7 +13,7 @@ import CustomerPage from "./modules/sales/customer/CustomerPage";
 import Warehouse from "./modules/invent/Warehouse";
 import InventoryPart from "./modules/invent/InventoryPart";
 import Invoices from "./modules/fin/Invoices";
-
+import SaleOrderLinesPage from './modules/sales/SaleOrderLines';
 // 🔹 User modülü
 import UsersHome from "./modules/user/UsersHome";
 
@@ -56,6 +56,7 @@ export default function App() {
         {/* Alt kırılımlar */}
         <Route path="/enterp/company" element={<CompanyPage />} />
         <Route path="/sales/customer" element={<CustomerPage />} />
+        <Route path="/sales/customerorderlines" element={<SaleOrderLinesPage />} />
         <Route path="/sales/orders" element={<SalesOrders />} />
         <Route path="/sales/quotes" element={<SalesQuotes />} />
         <Route path="/invent/warehouse" element={<Warehouse />} />

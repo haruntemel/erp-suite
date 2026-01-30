@@ -16,33 +16,138 @@ namespace Erp.Api.Controllers
             _context = context;
         }
 
-        [HttpGet("order/{company}/{orderNo}/{contract}")]
-        public async Task<IActionResult> GetOrderLines(string company, string orderNo, string contract)
+        // YENİ EKLENDİ: Tüm sipariş satırlarını getir
+        [HttpGet("get-all")]
+public async Task<IActionResult> GetAllOrderLines()
+{
+    try
+    {
+        var lines = await _context.CustomerOrderLines
+            .OrderByDescending(l => l.DateEntered)
+            .Take(1000)
+            .ToListAsync();
+            
+        Console.WriteLine($"GetAllOrderLines: {lines.Count} satır döndü");
+        return Ok(lines);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"GetAllOrderLines hatası: {ex.Message}");
+        return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+    }
+}
+
+        // GELİŞMİŞ VERSİYON: Arama ve sayfalama ile
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchOrderLines(
+    [FromQuery] string? search = null,
+    [FromQuery] string? orderNo = null,
+    [FromQuery] string? partNo = null,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 50)
         {
-            var lines = await _context.CustomerOrderLines
-                .Where(l => l.Company == company && l.OrderNo == orderNo && l.Contract == contract)
-                .ToListAsync();
+            try
+            {
+                var query = _context.CustomerOrderLines.AsQueryable();
                 
-            return Ok(lines);
+                // Arama filtresi
+                if (!string.IsNullOrEmpty(search))
+        {
+            query = query.Where(l => 
+                (l.PartNo != null && l.PartNo.Contains(search)) ||
+                (l.CatalogDesc != null && l.CatalogDesc.Contains(search)) ||
+                (l.OrderNo != null && l.OrderNo.Contains(search)) ||
+                (l.CustomerNo != null && l.CustomerNo.Contains(search)));
         }
+                
+                 // Sipariş numarası filtresi
+        if (!string.IsNullOrEmpty(orderNo))
+        {
+            query = query.Where(l => l.OrderNo != null && l.OrderNo.Contains(orderNo));
+        }
+        
+        // Malzeme numarası filtresi
+        if (!string.IsNullOrEmpty(partNo))
+        {
+            query = query.Where(l => l.PartNo != null && l.PartNo.Contains(partNo));
+        }
+                
+                // Toplam kayıt sayısı
+                var totalCount = await query.CountAsync();
+                
+                // Sayfalama
+                var items = await query
+                    .OrderByDescending(l => l.DateEntered)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+                
+                // Yanıt
+                var result = new
+                {
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+                    Items = items
+                };
+                
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+     [HttpGet("order/{company}/{orderNo}/{contract}")]
+public async Task<IActionResult> GetOrderLines(string company, string orderNo, string contract)
+{
+    try
+    {
+        var lines = await _context.CustomerOrderLines
+            .Where(l => l.Company == company && l.OrderNo == orderNo && l.Contract == contract)
+            .OrderBy(l => l.LineNo)
+            .ToListAsync();
+            
+        // Null kontrolü ekleyerek warning'i düzelt
+        if (lines == null || lines.Count == 0)
+        {
+            return Ok(new List<CustomerOrderLine>()); // Boş liste dön
+        }
+            
+        return Ok(lines);
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+    }
+}
 
         [HttpGet("{company}/{orderNo}/{contract}/{lineNo}/{relNo}")]
         public async Task<IActionResult> GetOrderLine(string company, string orderNo, string contract, 
             string lineNo, string relNo)
         {
-            var line = await _context.CustomerOrderLines
-                .FirstOrDefaultAsync(l => l.Company == company && 
-                                         l.OrderNo == orderNo && 
-                                         l.Contract == contract &&
-                                         l.LineNo == lineNo &&
-                                         l.RelNo == relNo);
-            
-            if (line == null)
+            try
             {
-                return NotFound(new { message = "Order line not found." });
+                var line = await _context.CustomerOrderLines
+                    .FirstOrDefaultAsync(l => l.Company == company && 
+                                             l.OrderNo == orderNo && 
+                                             l.Contract == contract &&
+                                             l.LineNo == lineNo &&
+                                             l.RelNo == relNo);
+                
+                if (line == null)
+                {
+                    return NotFound(new { message = "Order line not found." });
+                }
+                
+                return Ok(line);
             }
-            
-            return Ok(line);
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Internal server error: {ex.Message}" });
+            }
         }
 
         [HttpPost("order/{company}/{orderNo}/{contract}")]
@@ -97,7 +202,7 @@ namespace Erp.Api.Controllers
                     PriceUnitMeas = createDto.PriceUnitMeas,
                     Discount = createDto.Discount,
                     AdditionalDiscount = createDto.AdditionalDiscount,
-                    PriceConvFactor = 1, // Varsayılan
+                    PriceConvFactor = 1,
                     CustomerPartConvFactor = createDto.CustomerPartConvFactor,
                     DateEntered = DateOnly.FromDateTime(DateTime.Now),
                     PlannedDeliveryDate = createDto.PlannedDeliveryDate,
@@ -113,9 +218,7 @@ namespace Erp.Api.Controllers
                     ProjectId = createDto.ProjectId,
                     FreeOfCharge = createDto.FreeOfCharge,
                     Rowstate = createDto.Rowstate,
-                    // Diğer zorunlu alanlar (DTO'da olmayan)
                     OrderCode = "ORDER",
-                    // Sistem alanları
                     Rowversion = 1,
                     Rowkey = Guid.NewGuid().ToString()
                 };
@@ -124,8 +227,13 @@ namespace Erp.Api.Controllers
                 await _context.SaveChangesAsync();
                 
                 return CreatedAtAction(nameof(GetOrderLine), 
-                    new { company = company, orderNo = orderNo, contract = contract, 
-                          lineNo = line.LineNo, relNo = line.RelNo }, 
+                    new { 
+                        company = company, 
+                        orderNo = orderNo, 
+                        contract = contract, 
+                        lineNo = line.LineNo, 
+                        relNo = line.RelNo 
+                    }, 
                     line);
             }
             catch (Exception ex)
@@ -240,7 +348,6 @@ namespace Erp.Api.Controllers
                 // Rowversion'ı artır
                 line.Rowversion++;
 
-                _context.Entry(line).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
                 
                 return Ok(line);
@@ -280,7 +387,7 @@ namespace Erp.Api.Controllers
             }
         }
 
-        // DTO sınıflarını controller içinde tanımla
+        // DTO sınıfları
         public class CustomerOrderLineCreateDto
         {
             public required string LineNo { get; set; }
