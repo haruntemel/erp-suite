@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import SearchList from "./../../components/SearchList";
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
 
+declare global {
+  interface Window {
+    html2pdf: any;
+  }
+}
 // C# API'den gelen veri yapısı (camelCase)
 interface CustomerOrderApiResponse {
   company: string;
@@ -1206,6 +1211,196 @@ const calculateOrderLinesTotal = useCallback(() => {
   }, 0);
 }, [editingOrderLines]);
 
+
+//pdf
+
+const generatePDF = useCallback(async () => {
+  if (!selectedOrder) {
+    alert("Lütfen önce bir sipariş seçin!");
+    return;
+  }
+
+  try {
+    // Önce HTML içeriğini hazırla
+    const element = document.createElement('div');
+    element.style.padding = '20px';
+    element.style.backgroundColor = 'white';
+    element.style.color = 'black';
+    element.style.fontFamily = 'Arial, sans-serif';
+    
+    const totals = calculateOrderLinesTotal();
+    const kdv = totals * 0.18;
+    const genelToplam = totals + kdv;
+    
+    element.innerHTML = `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 style="color: #1e3a8a; margin-bottom: 10px; font-size: 24px;">SATIŞ SİPARİŞİ</h1>
+        <div style="border-bottom: 2px solid #1e3a8a; width: 200px; margin: 0 auto;"></div>
+      </div>
+      
+      <div style="margin-bottom: 20px; padding: 15px; background-color: #f8fafc; border-radius: 5px; border: 1px solid #ddd;">
+        <h3 style="color: #334155; margin-bottom: 10px; font-size: 16px;">SİPARİŞ BİLGİLERİ</h3>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+          <div><strong>Sipariş No:</strong> ${selectedOrder.OrderNo}</div>
+          <div><strong>Şirket:</strong> ${selectedOrder.Company}</div>
+          <div><strong>Kontrat:</strong> ${selectedOrder.Contract}</div>
+          <div><strong>Müşteri No:</strong> ${selectedOrder.CustomerNo}</div>
+          <div><strong>Sipariş Tarihi:</strong> ${new Date(selectedOrder.DateEntered).toLocaleDateString('tr-TR')}</div>
+          <div><strong>Teslimat Tarihi:</strong> ${selectedOrder.WantedDeliveryDate ? new Date(selectedOrder.WantedDeliveryDate).toLocaleDateString('tr-TR') : 'Belirtilmemiş'}</div>
+          <div><strong>Para Birimi:</strong> ${selectedOrder.CurrencyCode || 'TRY'}</div>
+          <div><strong>Durum:</strong> ${selectedOrder.Rowstate}</div>
+        </div>
+        ${selectedOrder.NoteText ? `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;"><strong>Notlar:</strong> ${selectedOrder.NoteText}</div>` : ''}
+      </div>
+      
+      ${editingOrderLines.length > 0 ? `
+        <div style="margin-bottom: 20px;">
+          <h3 style="color: #334155; margin-bottom: 10px; font-size: 16px;">SİPARİŞ SATIRLARI</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #ddd;">
+            <thead>
+              <tr style="background-color: #1e40af; color: white;">
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Satır</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">Malzeme No</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">Açıklama</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Miktar</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Birim Fiyat</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Toplam</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${editingOrderLines.map((line, index) => {
+                const quantity = line.OrderQty || line.BuyQtyDue || 0;
+                const price = line.Price || line.SaleUnitPrice || 0;
+                const total = quantity * price;
+                
+                return `
+                  <tr style="${index % 2 === 0 ? 'background-color: #f8fafc;' : ''}">
+                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${line.OrderLine}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd;">${line.PartNo || '-'}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd;">${line.CatalogDesc || '-'}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${quantity.toFixed(2)}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${price.toFixed(2)} ${selectedOrder.CurrencyCode || 'TL'}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-weight: bold;">${total.toFixed(2)} ${selectedOrder.CurrencyCode || 'TL'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : ''}
+      
+      <div style="padding: 15px; background-color: #f0f9ff; border-radius: 5px; border: 1px solid #ddd;">
+        <h3 style="color: #334155; margin-bottom: 10px; font-size: 16px;">TOPLAMLAR</h3>
+        <div style="display: flex; justify-content: space-between;">
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span>Ara Toplam:</span>
+              <span style="font-weight: bold;">${totals.toFixed(2)} ${selectedOrder.CurrencyCode || 'TL'}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span>KDV (%18):</span>
+              <span style="font-weight: bold;">${kdv.toFixed(2)} ${selectedOrder.CurrencyCode || 'TL'}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 2px solid #ddd;">
+              <span style="font-size: 16px; font-weight: bold;">GENEL TOPLAM:</span>
+              <span style="font-size: 18px; font-weight: bold; color: #1e40af;">${genelToplam.toFixed(2)} ${selectedOrder.CurrencyCode || 'TL'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 20px; padding-top: 10px; border-top: 1px dashed #ccc; color: #666; font-size: 11px;">
+        <div style="display: flex; justify-content: space-between;">
+          <div>Doküman No: SO-${selectedOrder.OrderNo}-${new Date().getFullYear()}</div>
+          <div>Oluşturulma: ${new Date().toLocaleString('tr-TR')}</div>
+          <div>Oluşturan: ${selectedOrder.CreatedBy || 'Sistem'}</div>
+        </div>
+        <div style="text-align: center; margin-top: 5px; font-style: italic;">
+          Bu belge ERP Suite sistemi tarafından otomatik oluşturulmuştur.
+        </div>
+      </div>
+    `;
+
+    // HTML2PDF'ı dynamic import et
+    try {
+      const html2pdf = (await import('html2pdf.js')).default;
+      
+      const opt = {
+  margin: 10,
+  filename: `Siparis_${selectedOrder.OrderNo}_${new Date().toISOString().split('T')[0]}.pdf`,
+  image: { 
+    type: 'jpeg' as const, // 'as const' ekleyin veya literal type kullanın
+    quality: 0.98 
+  },
+  html2canvas: { 
+    scale: 2,
+    useCORS: true,
+    logging: false,
+    backgroundColor: '#ffffff'
+  },
+  jsPDF: { 
+    unit: 'mm' as const, 
+    format: 'a4' as const, 
+    orientation: 'portrait' as const
+  }
+};
+      
+      html2pdf()
+        .set(opt)
+        .from(element)
+        .save()
+        .then(() => {
+          console.log('✅ PDF başarıyla oluşturuldu');
+          alert(`✅ "${selectedOrder.OrderNo}" siparişi PDF olarak kaydedildi!`);
+        })
+        .catch((err: any) => {
+          console.error('❌ PDF oluşturma hatası:', err);
+          alert('❌ PDF oluşturulurken bir hata oluştu!');
+        });
+        
+    } catch (importError) {
+      console.error('❌ HTML2PDF yüklenemedi:', importError);
+      
+      // Alternatif: Yeni pencere ile yazdır
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Sipariş ${selectedOrder.OrderNo}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                h1 { color: #1e3a8a; }
+                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                th, td { border: 1px solid #ddd; padding: 8px; }
+                th { background-color: #f2f2f2; }
+                .total { font-weight: bold; font-size: 18px; color: #1e40af; }
+              </style>
+            </head>
+            <body>
+              ${element.innerHTML}
+              <script>
+                window.onload = function() {
+                  window.print();
+                  setTimeout(() => window.close(), 1000);
+                }
+              </script>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        alert('PDF oluşturulamadı, yazdırma penceresi açıldı. Lütfen tarayıcınızın yazdırma seçeneğinden PDF olarak kaydedin.');
+      }
+    }
+      
+  } catch (error) {
+    console.error('❌ PDF oluşturma hatası:', error);
+    alert('❌ PDF oluşturulurken bir hata oluştu!');
+  }
+}, [selectedOrder, editingOrderLines, calculateOrderLinesTotal]);
+
+//pdf
+
   // YENİ SİPARİŞ OLUŞTURMA EKRANI (aynı kaldı, değişmedi)
   if (isCreatingNewOrder) {
     const { grandTotal } = calculateNewOrderTotals();
@@ -2110,6 +2305,28 @@ const calculateOrderLinesTotal = useCallback(() => {
                       <i className="fas fa-edit"></i>
                       <span>Düzenle</span>
                     </button>
+                    {/* PDF BUTONU EKLEYİN */}
+      <button
+        onClick={generatePDF}
+        disabled={!selectedOrder}
+        style={{
+          background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+          color: "white",
+          border: "none",
+          borderRadius: "6px",
+          padding: "8px 15px",
+          fontSize: "0.85rem",
+          cursor: selectedOrder ? "pointer" : "not-allowed",
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          opacity: selectedOrder ? 1 : 0.6
+        }}
+        title="Siparişi PDF olarak kaydet"
+      >
+        <i className="fas fa-file-pdf"></i>
+        <span>PDF Oluştur</span>
+      </button>
                     <button
                       onClick={handleDeleteOrder}
                       style={{

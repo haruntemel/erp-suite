@@ -45,6 +45,17 @@ const Shell = () => {
       ]
     },
     {
+      key: "mfgstd",
+      name: "Mühendislik",
+      icon: "money-bill-wave",
+      path: "/mfgstd",
+      children: [
+        { name: "Ürün Ağacı", path: "/mfgstd/MfgStructures" },
+        { name: "İş Merkezi", path: "/mfgstd/WorkCenter" },
+        { name: "Rota", path: "/mfgstd/MfgRoutes" }
+      ]
+    },
+    {
       key: "fin",
       name: "Finans",
       icon: "money-bill-wave",

@@ -3,6 +3,7 @@ import Shell from "./layout/Shell";
 import AppBase from "./modules/enterp/AppBase";
 import SalesHome from "./modules/sales/SalesHome";
 import InventoryHome from "./modules/invent/InventoryHome";
+import MfgstdHome from "./modules/mfgstd/MfgstdHome";
 import FinanceHome from "./modules/fin/FinanceHome";
 import Lobby from "./modules/lobby/Lobby";
 
@@ -14,6 +15,9 @@ import Warehouse from "./modules/invent/Warehouse";
 import InventoryPart from "./modules/invent/InventoryPart";
 import Invoices from "./modules/fin/Invoices";
 import SaleOrderLinesPage from './modules/sales/SaleOrderLines';
+import MfgStructures from './modules/mfgstd/MfgStructures';
+import WorkCenter from './modules/mfgstd/WorkCenter';
+import MfgRoutes from './modules/mfgstd/MfgRoutes';
 // 🔹 User modülü
 import UsersHome from "./modules/user/UsersHome";
 
@@ -51,6 +55,7 @@ export default function App() {
         <Route path="/sales" element={<SalesHome />} />
         <Route path="/invent" element={<InventoryHome />} />
         <Route path="/fin" element={<FinanceHome />} />
+        <Route path="/mfgstd" element={<MfgstdHome />} />
         <Route path="/user" element={<UsersHome />} />
 
         {/* Alt kırılımlar */}
@@ -63,6 +68,9 @@ export default function App() {
         <Route path="/invent/inventorypart" element={<InventoryPart />} />
         <Route path="/fin/invoices" element={<Invoices />} />
         <Route path="/user/users" element={<CreateUserForm />} />
+        <Route path="/mfgstd/mfgroutes" element={<MfgRoutes />} />
+        <Route path="/mfgstd/mfgstructures" element={<MfgStructures />} />
+        <Route path="/mfgstd/workcenter" element={<WorkCenter />} />
         
       </Route>
     </Routes>

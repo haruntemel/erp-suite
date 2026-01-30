@@ -20,7 +20,9 @@ namespace Erp.Api.Data
         public DbSet<InventoryPart> InventoryParts => Set<InventoryPart>();
         public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
         public DbSet<CustomerOrderLine> CustomerOrderLines => Set<CustomerOrderLine>();
-
+// Yeni eklenen DbSets - Ürün Ağacı
+        public DbSet<ProdStructureTab> ProdStructureTabs => Set<ProdStructureTab>();
+        public DbSet<ProdStructureHeadTab> ProdStructureHeadTabs => Set<ProdStructureHeadTab>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Product mapping
@@ -733,6 +735,186 @@ namespace Erp.Api.Data
         .HasMaxLength(4000);
 
                 // Sistem alanları
+                e.Property(x => x.Rowversion)
+                    .HasColumnName("rowversion")
+                    .HasColumnType("numeric(22,0)")
+                    .IsRequired()
+                    .HasDefaultValue(1);
+                    
+                e.Property(x => x.Rowkey)
+                    .HasColumnName("rowkey")
+                    .HasMaxLength(200)
+                    .IsRequired();
+            });
+             // ProdStructureHeadTab mapping
+            modelBuilder.Entity<ProdStructureHeadTab>(e =>
+            {
+                e.ToTable("prod_structure_head_tab"); // Tablo adını uygun şekilde ayarlayın
+                e.HasKey(x => new { x.Contract, x.PartNo, x.EngChgLevel, x.BomTypeDb });
+
+                // Anahtar alanlar
+                e.Property(x => x.Contract)
+                    .HasColumnName("contract")
+                    .HasMaxLength(20)
+                    .IsRequired();
+                    
+                e.Property(x => x.PartNo)
+                    .HasColumnName("part_no")
+                    .HasMaxLength(100)
+                    .IsRequired();
+                    
+                e.Property(x => x.EngChgLevel)
+                    .HasColumnName("eng_chg_level")
+                    .HasMaxLength(20)
+                    .IsRequired();
+                    
+                e.Property(x => x.BomTypeDb)
+                    .HasColumnName("bom_type_db")
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                // Diğer alanlar
+                e.Property(x => x.NoteText)
+                    .HasColumnName("note_text")
+                    .HasMaxLength(4000);
+                    
+                e.Property(x => x.EffPhaseInDate)
+                    .HasColumnName("eff_phase_in_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value : (DateTime?)null,
+                        v => v);
+                    
+                e.Property(x => x.EffPhaseOutDate)
+                    .HasColumnName("eff_phase_out_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value : (DateTime?)null,
+                        v => v);
+                    
+                e.Property(x => x.CreateDate)
+                    .HasColumnName("create_date")
+                    .HasColumnType("date")
+                    .IsRequired()
+                    .HasConversion(
+                        v => v,
+                        v => v);
+                    
+                e.Property(x => x.Rowstate)
+                    .HasColumnName("rowstate")
+                    .HasMaxLength(4000);
+                    
+                e.Property(x => x.CreatedBy)
+                    .HasColumnName("created_by")
+                    .HasMaxLength(80)
+                    .IsRequired();
+                    
+                e.Property(x => x.Rowversion)
+                    .HasColumnName("rowversion")
+                    .HasColumnType("numeric(22,0)")
+                    .IsRequired()
+                    .HasDefaultValue(1);
+                    
+                e.Property(x => x.Rowkey)
+                    .HasColumnName("rowkey")
+                    .HasMaxLength(200)
+                    .IsRequired();
+            });
+
+            // ProdStructureTab mapping
+            modelBuilder.Entity<ProdStructureTab>(e =>
+            {
+                e.ToTable("prod_structure_tab"); // Tablo adını uygun şekilde ayarlayın
+                e.HasKey(x => new { 
+                    x.Contract, 
+                    x.PartNo, 
+                    x.EngChgLevel, 
+                    x.BomTypeDb, 
+                    x.AlternativeNo, 
+                    x.LineItemNo, 
+                    x.LineSequence, 
+                    x.OperationNo 
+                });
+
+                // Anahtar alanlar
+                e.Property(x => x.Contract)
+                    .HasColumnName("contract")
+                    .HasMaxLength(20)
+                    .IsRequired();
+                    
+                e.Property(x => x.PartNo)
+                    .HasColumnName("part_no")
+                    .HasMaxLength(100)
+                    .IsRequired();
+                    
+                e.Property(x => x.EngChgLevel)
+                    .HasColumnName("eng_chg_level")
+                    .HasMaxLength(20)
+                    .IsRequired();
+                    
+                e.Property(x => x.BomTypeDb)
+                    .HasColumnName("bom_type_db")
+                    .HasMaxLength(20)
+                    .IsRequired();
+                    
+                e.Property(x => x.AlternativeNo)
+                    .HasColumnName("alternative_no")
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                // Sayısal alanlar
+                e.Property(x => x.LineItemNo)
+                    .HasColumnName("line_item_no")
+                    .HasColumnType("numeric(22,0)")
+                    .IsRequired();
+                    
+                e.Property(x => x.LineSequence)
+                    .HasColumnName("line_sequence")
+                    .HasColumnType("numeric(22,0)")
+                    .IsRequired();
+                    
+                e.Property(x => x.OperationNo)
+                    .HasColumnName("operation_no")
+                    .HasColumnType("numeric(22,0)")
+                    .IsRequired();
+
+                // Diğer alanlar
+                e.Property(x => x.NoteText)
+                    .HasColumnName("note_text")
+                    .HasMaxLength(4000);
+                    
+                e.Property(x => x.Source)
+                    .HasColumnName("source")
+                    .HasMaxLength(80);
+                    
+                e.Property(x => x.CreateDate)
+                    .HasColumnName("create_date")
+                    .HasColumnType("date")
+                    .IsRequired()
+                    .HasConversion(
+                        v => v,
+                        v => v);
+                    
+                e.Property(x => x.LastActivityDate)
+                    .HasColumnName("last_activity_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value : (DateTime?)null,
+                        v => v);
+                    
+                e.Property(x => x.ComponentPart)
+                    .HasColumnName("component_part")
+                    .HasMaxLength(100);
+                    
+                e.Property(x => x.Rowstate)
+                    .HasColumnName("rowstate")
+                    .HasMaxLength(4000);
+                    
+                e.Property(x => x.CreatedBy)
+                    .HasColumnName("created_by")
+                    .HasMaxLength(80)
+                    .IsRequired();
+                    
                 e.Property(x => x.Rowversion)
                     .HasColumnName("rowversion")
                     .HasColumnType("numeric(22,0)")
