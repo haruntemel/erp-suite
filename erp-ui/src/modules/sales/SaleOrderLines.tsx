@@ -217,8 +217,27 @@ export default function SaleOrderLinesPage() {
 
 // Sipariş detayına git - Güncellenmiş ve basitleştirilmiş versiyon
 // CustomerOrderLines.tsx'te goToOrderDetail fonksiyonu
-const goToOrderDetail = (orderNo: string, company: string, contract: string) => {
-  // URL parametreleri ile SalesOrders sayfasını aç
+// Sipariş detayına git - TAM ÇÖZ ÜM
+const goToOrderDetail = useCallback((orderNo: string, company: string, contract: string) => {
+  console.log(`🔍 Sipariş detayına gidiliyor: ${orderNo} (${company}/${contract})`);
+  
+  // 1. localStorage'a kaydet (en güvenilir yöntem)
+  const orderInfo = {
+    company,
+    orderNo,
+    contract,
+    timestamp: Date.now(),
+    source: 'CustomerOrderLines'
+  };
+  
+  try {
+    localStorage.setItem('autoSelectOrder', JSON.stringify(orderInfo));
+    console.log('✅ localStorage\'a kaydedildi:', orderInfo);
+  } catch (err) {
+    console.error('❌ localStorage kayıt hatası:', err);
+  }
+  
+  // 2. URL parametreleri oluştur
   const params = new URLSearchParams({
     company: company,
     orderNo: orderNo,
@@ -226,37 +245,12 @@ const goToOrderDetail = (orderNo: string, company: string, contract: string) => 
     fromCustomerOrderLines: 'true'
   });
   
-  const url = `/sales/orders?${params.toString()}`;
-  const newWindow = window.open(url, '_blank');
+  const targetUrl = `/sales/orders?${params.toString()}`;
   
-  // PostMessage ile de bilgi gönder (alternatif yol)
-  if (newWindow) {
-    const orderInfo = {
-      type: 'SELECT_ORDER_FROM_LINES',
-      data: {
-        company,
-        orderNo,
-        contract,
-        timestamp: Date.now(),
-        source: 'CustomerOrderLines'
-      }
-    };
-    
-    // Pencere yüklendiğinde mesaj gönder
-    setTimeout(() => {
-      try {
-        newWindow.postMessage(orderInfo, window.location.origin);
-      } catch (err) {
-        console.warn('PostMessage gönderilemedi:', err);
-      }
-    }, 1000);
-    
-    // localStorage'a da kaydet (backup)
-    localStorage.setItem('autoSelectOrder', JSON.stringify(orderInfo.data));
-  }
+  // 3. Aynı sekmede yönlendir (EN GÜVENİLİR)
+  window.location.href = targetUrl;
   
-  console.log(`🔍 Sipariş detayı açılıyor: ${orderNo}`);
-};
+}, []);
 
   // Sayfa değiştirme
   const handlePageChange = (newPage: number) => {
