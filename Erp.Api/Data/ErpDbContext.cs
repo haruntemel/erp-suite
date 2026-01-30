@@ -18,6 +18,8 @@ namespace Erp.Api.Data
         public DbSet<Company> Companies => Set<Company>();
         public DbSet<CustomerInfo> Customers => Set<CustomerInfo>();
         public DbSet<InventoryPart> InventoryParts => Set<InventoryPart>();
+        public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
+        public DbSet<CustomerOrderLine> CustomerOrderLines => Set<CustomerOrderLine>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -196,7 +198,7 @@ namespace Erp.Api.Data
                     .HasMaxLength(120);
             });
 
-            // INVENTORY_PART mapping - SADELEŞTİRİLMİŞ
+            // INVENTORY_PART mapping
             modelBuilder.Entity<InventoryPart>(e =>
             {
                 e.ToTable("inventory_part");
@@ -351,6 +353,385 @@ namespace Erp.Api.Data
                     .HasColumnName("expected_leadtime")
                     .HasColumnType("numeric(22,0)");
                 
+                // Sistem alanları
+                e.Property(x => x.Rowversion)
+                    .HasColumnName("rowversion")
+                    .HasColumnType("numeric(22,0)")
+                    .IsRequired()
+                    .HasDefaultValue(1);
+                    
+                e.Property(x => x.Rowkey)
+                    .HasColumnName("rowkey")
+                    .HasMaxLength(200)
+                    .IsRequired();
+            });
+
+            // CustomerOrder mapping
+            modelBuilder.Entity<CustomerOrder>(e =>
+            {
+                e.ToTable("customer_order_tab");
+                e.HasKey(x => new { x.Company, x.OrderNo, x.Contract });
+
+                // Anahtar alanlar
+                e.Property(x => x.Company)
+                    .HasColumnName("company")
+                    .HasMaxLength(80)
+                    .IsRequired();
+                    
+                e.Property(x => x.OrderNo)
+                    .HasColumnName("order_no")
+                    .HasMaxLength(48)
+                    .IsRequired();
+                    
+                e.Property(x => x.Contract)
+                    .HasColumnName("contract")
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                // Müşteri bilgileri
+                e.Property(x => x.CustomerNo)
+                    .HasColumnName("customer_no")
+                    .HasMaxLength(80)
+                    .IsRequired();
+                    
+                e.Property(x => x.CustomerPoNo)
+                    .HasColumnName("customer_po_no")
+                    .HasMaxLength(200);
+
+                // Tarih bilgileri
+                e.Property(x => x.DateEntered)
+                    .HasColumnName("date_entered")
+                    .HasColumnType("date")
+                    .IsRequired()
+                    .HasConversion(
+                        v => v.ToDateTime(TimeOnly.MinValue),
+                        v => DateOnly.FromDateTime(v));
+                    
+                e.Property(x => x.WantedDeliveryDate)
+                    .HasColumnName("wanted_delivery_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+                    
+                e.Property(x => x.PayTermBaseDate)
+                    .HasColumnName("pay_term_base_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+
+                // Ödeme ve teslimat
+                e.Property(x => x.CurrencyCode)
+                    .HasColumnName("currency_code")
+                    .HasMaxLength(12);
+                    
+                e.Property(x => x.PayTermId)
+                    .HasColumnName("pay_term_id")
+                    .HasMaxLength(80);
+                    
+                e.Property(x => x.DeliveryTerms)
+                    .HasColumnName("delivery_terms")
+                    .HasMaxLength(20);
+                    
+                e.Property(x => x.ShipViaCode)
+                    .HasColumnName("ship_via_code")
+                    .HasMaxLength(12);
+                    
+                e.Property(x => x.DeliveryCountryCode)
+                    .HasColumnName("delivery_country_code")
+                    .HasMaxLength(4000);
+
+                // Diğer bilgiler
+                e.Property(x => x.OrderId)
+                    .HasColumnName("order_id")
+                    .HasMaxLength(12);
+                    
+                e.Property(x => x.AuthorizeCode)
+                    .HasColumnName("authorize_code")
+                    .HasMaxLength(80);
+                    
+                e.Property(x => x.SalesmanCode)
+                    .HasColumnName("salesman_code")
+                    .HasMaxLength(80);
+                    
+                e.Property(x => x.BillAddrNo)
+                    .HasColumnName("bill_addr_no")
+                    .HasMaxLength(200);
+                    
+                e.Property(x => x.ShipAddrNo)
+                    .HasColumnName("ship_addr_no")
+                    .HasMaxLength(200);
+                    
+                e.Property(x => x.InternalPoNo)
+                    .HasColumnName("internal_po_no")
+                    .HasMaxLength(48);
+                    
+                e.Property(x => x.NoteText)
+                    .HasColumnName("note_text")
+                    .HasMaxLength(4000);
+                    
+                e.Property(x => x.Rowstate) // Objstate yerine Rowstate
+        .HasColumnName("rowstate") // DB'de hala objstate olarak kalacak
+        .HasMaxLength(4000);
+
+                // Sistem alanları
+                e.Property(x => x.CreatedBy)
+                    .HasColumnName("created_by")
+                    .HasMaxLength(80)
+                    .IsRequired();
+                    
+                e.Property(x => x.Rowversion)
+                    .HasColumnName("rowversion")
+                    .HasColumnType("numeric(22,0)")
+                    .IsRequired()
+                    .HasDefaultValue(1);
+                    
+                e.Property(x => x.Rowkey)
+                    .HasColumnName("rowkey")
+                    .HasMaxLength(200)
+                    .IsRequired();
+            });
+
+            // CustomerOrderLine mapping
+            modelBuilder.Entity<CustomerOrderLine>(e =>
+            {
+                e.ToTable("customer_order_line_tab");
+                e.HasKey(x => new { x.Company, x.OrderNo, x.Contract, x.LineNo, x.RelNo });
+
+                // Anahtar alanlar
+                e.Property(x => x.Company)
+                    .HasColumnName("company")
+                    .HasMaxLength(80)
+                    .IsRequired();
+                    
+                e.Property(x => x.OrderNo)
+                    .HasColumnName("order_no")
+                    .HasMaxLength(48)
+                    .IsRequired();
+                    
+                e.Property(x => x.Contract)
+                    .HasColumnName("contract")
+                    .HasMaxLength(20)
+                    .IsRequired();
+                    
+                e.Property(x => x.LineNo)
+                    .HasColumnName("line_no")
+                    .HasMaxLength(16)
+                    .IsRequired();
+                    
+                e.Property(x => x.RelNo)
+                    .HasColumnName("rel_no")
+                    .HasMaxLength(16)
+                    .IsRequired();
+
+                // Malzeme bilgileri
+                e.Property(x => x.CatalogNo)
+                    .HasColumnName("catalog_no")
+                    .HasMaxLength(100)
+                    .IsRequired();
+                    
+                e.Property(x => x.PartNo)
+                    .HasColumnName("part_no")
+                    .HasMaxLength(100)
+                    .IsRequired();
+                    
+                e.Property(x => x.CustomerPartNo)
+                    .HasColumnName("customer_part_no")
+                    .HasMaxLength(180);
+                    
+                e.Property(x => x.CatalogDesc)
+                    .HasColumnName("catalog_desc")
+                    .HasMaxLength(800);
+                    
+                e.Property(x => x.CatalogType)
+                    .HasColumnName("catalog_type")
+                    .HasMaxLength(4000);
+
+                // Miktar ve fiyat
+                e.Property(x => x.BuyQtyDue)
+                    .HasColumnName("buy_qty_due")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.CustomerPartBuyQty)
+                    .HasColumnName("customer_part_buy_qty")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.BaseSaleUnitPrice)
+                    .HasColumnName("base_sale_unit_price")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.BaseUnitPriceInclTax)
+                    .HasColumnName("base_unit_price_incl_tax")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.SaleUnitPrice)
+                    .HasColumnName("sale_unit_price")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.UnitPriceInclTax)
+                    .HasColumnName("unit_price_incl_tax")
+                    .HasColumnType("numeric(22,2)");
+
+                // Ölçü birimleri
+                e.Property(x => x.SalesUnitMeas)
+                    .HasColumnName("sales_unit_meas")
+                    .HasMaxLength(40);
+                    
+                e.Property(x => x.PriceUnitMeas)
+                    .HasColumnName("price_unit_meas")
+                    .HasMaxLength(40);
+                    
+                e.Property(x => x.CustomerPartUnitMeas)
+                    .HasColumnName("customer_part_unit_meas")
+                    .HasMaxLength(40);
+
+                // Döviz ve indirim
+                e.Property(x => x.CurrencyRate)
+                    .HasColumnName("currency_rate")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.Discount)
+                    .HasColumnName("discount")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.AdditionalDiscount)
+                    .HasColumnName("additional_discount")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.PriceConvFactor)
+                    .HasColumnName("price_conv_factor")
+                    .HasColumnType("numeric(22,2)");
+                    
+                e.Property(x => x.CustomerPartConvFactor)
+                    .HasColumnName("customer_part_conv_factor")
+                    .HasColumnType("numeric(22,2)");
+
+                // Tarih bilgileri
+                e.Property(x => x.DateEntered)
+                    .HasColumnName("date_entered")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+                    
+                e.Property(x => x.PlannedDeliveryDate)
+                    .HasColumnName("planned_delivery_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+                    
+                e.Property(x => x.PlannedDueDate)
+                    .HasColumnName("planned_due_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+                    
+                e.Property(x => x.PromisedDeliveryDate)
+                    .HasColumnName("promised_delivery_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+                    
+                e.Property(x => x.RealShipDate)
+                    .HasColumnName("real_ship_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+                    
+                e.Property(x => x.WantedDeliveryDate)
+                    .HasColumnName("wanted_delivery_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+                    
+                e.Property(x => x.PlannedShipDate)
+                    .HasColumnName("planned_ship_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+                    
+                e.Property(x => x.FirstActualShipDate)
+                    .HasColumnName("first_actual_ship_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+                    
+                e.Property(x => x.TargetDate)
+                    .HasColumnName("target_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+
+                // Diğer bilgiler
+                e.Property(x => x.LineItemNo)
+                    .HasColumnName("line_item_no")
+                    .HasColumnType("numeric(22,0)");
+                    
+                e.Property(x => x.OrderCode)
+                    .HasColumnName("order_code")
+                    .HasMaxLength(12);
+                    
+                e.Property(x => x.DeliveryType)
+                    .HasColumnName("delivery_type")
+                    .HasMaxLength(80);
+                    
+                e.Property(x => x.TaxCode)
+                    .HasColumnName("tax_code")
+                    .HasMaxLength(80);
+                    
+                e.Property(x => x.NoteText)
+                    .HasColumnName("note_text")
+                    .HasMaxLength(4000);
+                    
+                e.Property(x => x.CustomerNo)
+                    .HasColumnName("customer_no")
+                    .HasMaxLength(80);
+                    
+                e.Property(x => x.ForwardAgentId)
+                    .HasColumnName("forward_agent_id")
+                    .HasMaxLength(80);
+                    
+                e.Property(x => x.ShipViaCode)
+                    .HasColumnName("ship_via_code")
+                    .HasMaxLength(12);
+                    
+                e.Property(x => x.DeliveryTerms)
+                    .HasColumnName("delivery_terms")
+                    .HasMaxLength(20);
+                    
+                e.Property(x => x.PartOwnership)
+                    .HasColumnName("part_ownership")
+                    .HasMaxLength(4000);
+                    
+                e.Property(x => x.ActivitySeq)
+                    .HasColumnName("activity_seq")
+                    .HasColumnType("numeric(22,0)");
+                    
+                e.Property(x => x.ProjectId)
+                    .HasColumnName("project_id")
+                    .HasMaxLength(40);
+                    
+                e.Property(x => x.CustomerPoLineNo)
+                    .HasColumnName("customer_po_line_no")
+                    .HasMaxLength(16);
+                    
+                e.Property(x => x.FreeOfCharge)
+                    .HasColumnName("free_of_charge")
+                    .HasMaxLength(4000);
+                    
+                e.Property(x => x.Rowstate) // State yerine Rowstate
+        .HasColumnName("rowstate") // DB'de hala state olarak kalacak
+        .HasMaxLength(4000);
+
                 // Sistem alanları
                 e.Property(x => x.Rowversion)
                     .HasColumnName("rowversion")

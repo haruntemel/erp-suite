@@ -1,6 +1,6 @@
 using Erp.Api.Data;
 using Erp.Api.Models;
-using Erp.Api.Services; // ✅ Bu using'i EKLEYİN
+using Erp.Api.Services;
 using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OData.ModelBuilder;
@@ -9,6 +9,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using EFCore.NamingConventions;
 using BCrypt.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,14 +105,20 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
-builder.Services.AddScoped<JwtService>(); // ✅ Namespace düzeltildi
+builder.Services.AddScoped<JwtService>();
 
-// 🔹 Controller + OData
+// 🔹 Controller + OData + JSON Serialization
 builder.Services.AddControllers()
     .AddOData(opt =>
     {
         opt.AddRouteComponents("odata", edmBuilder.GetEdmModel());
         opt.Select().Filter().OrderBy().Expand().SetMaxTop(100).Count();
+    })
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+        options.JsonSerializerOptions.Converters.Add(new NullableDateOnlyJsonConverter());
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 
 var app = builder.Build();
@@ -284,4 +292,40 @@ static string GenerateSecureKey(int length)
     }
     
     return new string(chars);
+}
+
+// DateOnly için JSON converter sınıfları (Program.cs sonunda)
+public class DateOnlyJsonConverter : JsonConverter<DateOnly>
+{
+    private const string Format = "yyyy-MM-dd";
+
+    public override DateOnly Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var value = reader.GetString();
+        if (string.IsNullOrEmpty(value))
+            return default;
+            
+        return DateOnly.Parse(value);
+    }
+
+    public override void Write(Utf8JsonWriter writer, DateOnly value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value.ToString(Format));
+    }
+}
+
+public class NullableDateOnlyJsonConverter : JsonConverter<DateOnly?>
+{
+    private const string Format = "yyyy-MM-dd";
+
+    public override DateOnly? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var str = reader.GetString();
+        return string.IsNullOrEmpty(str) ? null : DateOnly.Parse(str);
+    }
+
+    public override void Write(Utf8JsonWriter writer, DateOnly? value, JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value?.ToString(Format));
+    }
 }

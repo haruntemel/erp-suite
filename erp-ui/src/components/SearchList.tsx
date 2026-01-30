@@ -1,25 +1,29 @@
+// SearchList.tsx - Düzeltilmiş versiyon
+// ChevronRightIcon import'tan kaldırıldı
 import { useState, useEffect } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { ChevronLeftIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
-interface SearchListItem {
+// Generic interface
+interface SearchListItem<T = any> {
   id: string | number;
   code: string;
   name: string;
   description?: string;
+  originalData?: T;
   [key: string]: any;
 }
 
-interface SearchListProps {
+interface SearchListProps<T = any> {
   title: string;
-  items: SearchListItem[];
-  onSelect: (item: SearchListItem) => void;
+  items: SearchListItem<T>[];
+  onSelect: (item: SearchListItem<T>) => void;
   onToggle?: () => void;
   searchFields?: string[];
   displayFields?: string[];
   icon?: string;
 }
 
-export default function SearchList({
+export default function SearchList<T>({
   title,
   items,
   onSelect,
@@ -27,9 +31,9 @@ export default function SearchList({
   searchFields = ["code", "name", "description"],
   displayFields = ["code", "name"],
   icon = "fas fa-list"
-}: SearchListProps) {
+}: SearchListProps<T>) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredItems, setFilteredItems] = useState<SearchListItem[]>(items);
+  const [filteredItems, setFilteredItems] = useState<SearchListItem<T>[]>(items);
 
   // Arama yap
   useEffect(() => {
@@ -49,7 +53,7 @@ export default function SearchList({
     setFilteredItems(filtered);
   }, [searchQuery, items, searchFields]);
 
-  const handleItemClick = (item: SearchListItem) => {
+  const handleItemClick = (item: SearchListItem<T>) => {
     onSelect(item);
   };
 

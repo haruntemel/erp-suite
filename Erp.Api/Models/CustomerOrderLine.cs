@@ -62,7 +62,7 @@ namespace Erp.Api.Models
         public string? ProjectId { get; set; }
         public string? CustomerPoLineNo { get; set; }
         public string? FreeOfCharge { get; set; }
-        public string? State { get; set; }
+        public string? Rowstate { get; set; } // State yerine Rowstate
         
         // Sistem alanları
         public required decimal Rowversion { get; set; }
