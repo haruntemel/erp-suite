@@ -102,7 +102,7 @@ export default function WorkCenterPage() {
   });
 
   // API URL'leri
-  const API_BASE_URL = "http://localhost:5217/api";
+  const API_BASE_URL = "/api";
   const WORK_CENTER_API = `${API_BASE_URL}/workcenter`;
   const COMPANY_API = `${API_BASE_URL}/company`;
   const COMPANY_SITE_API = `${API_BASE_URL}/companysites`;

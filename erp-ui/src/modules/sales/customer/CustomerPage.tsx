@@ -500,7 +500,7 @@ export default function CustomerPage() {
     try {
       setLoading(true);
       // API endpoint'ini customer_info tablosuna göre güncelleyin
-      const response = await fetch('http://localhost:5217/api/customer');
+      const response = await fetch('/api/customer');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -571,7 +571,7 @@ export default function CustomerPage() {
         const customerToDelete = customers.find(c => c.id === id);
         if (!customerToDelete) return;
 
-        const response = await fetch(`http://localhost:5217/api/customer/${customerToDelete.customer_id}`, {
+        const response = await fetch(`/api/customer/${customerToDelete.customer_id}`, {
           method: 'DELETE',
         });
 
@@ -626,7 +626,7 @@ export default function CustomerPage() {
         rowversion: selectedCustomer.rowversion
       };
 
-      const response = await fetch(`http://localhost:5217/api/customer/${editingCustomerData.customer_id}`, {
+      const response = await fetch(`/api/customer/${editingCustomerData.customer_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -681,7 +681,7 @@ export default function CustomerPage() {
         rowversion: selectedCustomer.rowversion
       };
 
-      const response = await fetch(`http://localhost:5217/api/customer/${editingCustomerData.customer_id}`, {
+      const response = await fetch(`/api/customer/${editingCustomerData.customer_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

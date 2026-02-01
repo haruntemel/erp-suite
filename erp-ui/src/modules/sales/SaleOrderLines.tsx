@@ -103,7 +103,7 @@ export default function SaleOrderLinesPage() {
       setLoading(true);
       console.log("🔍 API isteği başlatılıyor: /api/customerorderline/get-all");
       
-      const response = await fetch('http://localhost:5217/api/customerorderline/get-all');
+      const response = await fetch('/api/customerorderline/get-all');
       
       if (!response.ok) {
         throw new Error(`API hatası: ${response.status} ${response.statusText}`);
