@@ -44,6 +44,9 @@ namespace Erp.Api.Models
         public decimal? MinStorageHumidity { get; set; }                // NUMBER(22)
         public decimal? MaxStorageHumidity { get; set; }                // NUMBER(22)
         
+
+        public string? TypeCode { get; set; }                          // VARCHAR2(4000)
+        public string? TypeCodeDb { get; set; }                        // VARCHAR2(80)
         // Paketleme
         public decimal? StandardPutawayQty { get; set; }                // NUMBER(22)
         public decimal? StandardPackSize { get; set; }                  // NUMBER(22)

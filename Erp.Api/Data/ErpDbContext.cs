@@ -296,7 +296,13 @@ namespace Erp.Api.Data
                 e.Property(x => x.SalesTypeDb)
                     .HasColumnName("sales_type_db")
                     .HasMaxLength(80);
-                
+
+                    e.Property(x => x.TypeCode)
+                    .HasColumnName("type_code")
+                    .HasMaxLength(50);
+                 e.Property(x => x.TypeCodeDb)
+                    .HasColumnName("type_code_db")
+                    .HasMaxLength(50);
                 // Depolama gereksinimleri
                 e.Property(x => x.StorageWidthRequirement)
                     .HasColumnName("storage_width_requirement")
