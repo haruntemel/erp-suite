@@ -14,61 +14,78 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DEBUG: Configuration kontrolü
+// =============================================
+// 🔹 CONFIGURATION LOGGING
+// =============================================
 Console.WriteLine("\n=== CONFIGURATION CHECK ===");
 Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
 
-// 🔹 EF Core PostgreSQL
+// =============================================
+// 🔹 EF Core - PostgreSQL
+// =============================================
+// Docker'da environment variable ConnectionStrings__DefaultConnection
+// appsettings.json'daki değeri OVERRIDE eder -> her iki ortamda da çalışır
+var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
+Console.WriteLine($"Connection String: {connStr}");
+
 builder.Services.AddDbContext<ErpDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseNpgsql(connStr)
            .UseSnakeCaseNamingConvention());
 
-// 🔹 CORS (React dev server için)
+// =============================================
+// 🔹 CORS
+// =============================================
+// FIX: Production'da nginx proxy kullandığımız için "*" yeterli
+// Local dev için spesifik portlar
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", p =>
-        p.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        p.WithOrigins(
+            "http://localhost:5173",   // Vite dev server
+            "http://localhost:3000",   // React dev / Docker frontend
+            "http://localhost:5000"    // Backend doğrudan
+        )
+         .AllowAnyHeader()
+         .AllowAnyMethod());
+
+    // Production: nginx aynı origin'den serve ettiği için bu yeterli
+    options.AddPolicy("Production", p =>
+        p.AllowAnyOrigin()
          .AllowAnyHeader()
          .AllowAnyMethod());
 });
 
+// =============================================
 // 🔹 OData EDM Model
+// =============================================
 var edmBuilder = new ODataConventionModelBuilder();
 edmBuilder.EntitySet<Product>("Products");
 
+// =============================================
 // 🔹 JWT CONFIGURATION
+// =============================================
 var jwt = builder.Configuration.GetSection("Jwt");
-var keyString = jwt["Key"] ?? throw new ArgumentNullException("Jwt:Key", "JWT Key configuration is missing!");
+// FIX: Key her zaman config'den gelsin -> GenerateSecureKey REMOVE edildi
+// Çünkü her restart'ta farklı key üretirse token geçersiz olur
+var keyString = jwt["Key"]
+    ?? throw new ArgumentNullException("Jwt:Key", "JWT Key configuration is missing!");
 
-// DEBUG: JWT ayarlarını göster
 Console.WriteLine($"\n=== JWT CONFIGURATION ===");
-Console.WriteLine($"Key from config: {keyString}");
-Console.WriteLine($"Key length: {keyString.Length} characters");
-Console.WriteLine($"Key bits: {Encoding.UTF8.GetBytes(keyString).Length * 8} bits");
+Console.WriteLine($"Key length: {keyString.Length} chars | {Encoding.UTF8.GetBytes(keyString).Length * 8} bits");
 Console.WriteLine($"Issuer: {jwt["Issuer"]}");
 Console.WriteLine($"Audience: {jwt["Audience"]}");
-Console.WriteLine($"ExpireMinutes: {jwt["ExpireMinutes"]}");
 
-// Key uzunluğunu kontrol et (en az 32 karakter = 256 bit)
+// Key 32 char (256 bit) altında olursa uygulama başlatmayı durdur
 if (keyString.Length < 32)
 {
-    Console.WriteLine($"\n⚠️  WARNING: JWT Key is too short for HS256!");
-    Console.WriteLine($"   Current: {keyString.Length} chars ({Encoding.UTF8.GetBytes(keyString).Length * 8} bits)");
-    Console.WriteLine($"   Required: 32 chars (256 bits)");
-    Console.WriteLine($"   Generating a secure random key...");
-    
-    // Güvenli random key oluştur
-    keyString = GenerateSecureKey(32);
-    Console.WriteLine($"   New key: {keyString}");
-    Console.WriteLine($"   New key length: {keyString.Length} characters");
-}
-else
-{
-    Console.WriteLine($"\n✅ JWT Key length is OK for HS256");
+    throw new InvalidOperationException(
+        $"JWT Key çok kısa! Mevcut: {keyString.Length} char. " +
+        $"En az 32 char (256 bit) olmalı. " +
+        $"appsettings.json'daki Jwt.Key'i uzatlın.");
 }
 
 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
-Console.WriteLine($"SecurityKey length: {key.KeySize} bits");
+Console.WriteLine($"✅ JWT Key OK - SecurityKey: {key.KeySize} bits");
 
 // JWT Authentication
 builder.Services
@@ -84,21 +101,19 @@ builder.Services
             ValidIssuer = jwt["Issuer"],
             ValidAudience = jwt["Audience"],
             IssuerSigningKey = key,
-            ClockSkew = TimeSpan.Zero // Token süresi hassas olsun
+            ClockSkew = TimeSpan.Zero
         };
-        
-        // DEBUG için
+
         opt.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = context =>
             {
-                Console.WriteLine($"\n❌ JWT AUTHENTICATION FAILED:");
-                Console.WriteLine($"Error: {context.Exception.Message}");
+                Console.WriteLine($"❌ JWT Auth Failed: {context.Exception.Message}");
                 return Task.CompletedTask;
             },
             OnTokenValidated = context =>
             {
-                Console.WriteLine($"\n✅ JWT TOKEN VALIDATED");
+                Console.WriteLine($"✅ JWT Token Validated");
                 return Task.CompletedTask;
             }
         };
@@ -107,7 +122,9 @@ builder.Services
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<JwtService>();
 
-// 🔹 Controller + OData + JSON Serialization
+// =============================================
+// 🔹 Controllers + OData + JSON
+// =============================================
 builder.Services.AddControllers()
     .AddOData(opt =>
     {
@@ -121,180 +138,109 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 
+// =============================================
+// 🔹 APP BUILD
+// =============================================
 var app = builder.Build();
 
-// === VERİTABANI SEED İŞLEMİ ===
+// =============================================
+// 🔹 DATABASE SEED
+// =============================================
 using (var scope = app.Services.CreateScope())
 {
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<ErpDbContext>();
-        
-        // DEBUG: Hash test
-        Console.WriteLine("\n=== HASH TEST ===");
-        string testPassword = "12345";
-        string testHash = BCrypt.Net.BCrypt.HashPassword(testPassword);
-        bool isValid = BCrypt.Net.BCrypt.Verify(testPassword, testHash);
-        Console.WriteLine($"Password: {testPassword}");
-        Console.WriteLine($"Hash: {testHash}");
-        Console.WriteLine($"Verification: {isValid}");
-        
-        // Veritabanını oluştur (eğer yoksa)
-        Console.WriteLine("\n=== DATABASE CREATION ===");
+
+        Console.WriteLine("\n=== DATABASE SETUP ===");
+        // EnsureCreatedAsync -> tabloları oluşturur (migration olmadan)
+        // Dikkat: Varolan tablolar üzerinde schema değişikliği yapmazs
+        // Eğer schema değiştiysen -> tabloyu silmen veya migration kullanman gerekir
         await db.Database.EnsureCreatedAsync();
-        Console.WriteLine("✅ Database ensured/created");
-        
-        // DEBUG: Mevcut kullanıcıları göster
-        var userCount = await db.Users.CountAsync();
-        Console.WriteLine($"\n=== DATABASE CHECK ===");
-        Console.WriteLine($"Total users in database: {userCount}");
-        
-        // Tüm kullanıcıları listele
-        var allUsers = await db.Users.ToListAsync();
-        if (allUsers.Any())
-        {
-            Console.WriteLine("\n=== EXISTING USERS ===");
-            foreach (var user in allUsers)
-            {
-                Console.WriteLine($"- ID: {user.Id}, Username: '{user.Username}', Status: {user.Status}");
-            }
-        }
-        else
-        {
-            Console.WriteLine("No users found in database.");
-        }
-        
-        // Eğer admin kullanıcısı yoksa oluştur
+        Console.WriteLine("✅ Database tables ensured");
+
+        // Admin kullanıcı kontrolü
         var adminUser = await db.Users
             .FirstOrDefaultAsync(u => u.Username.ToLower() == "admin");
-            
+
         if (adminUser == null)
         {
-            Console.WriteLine("\n=== CREATING ADMIN USER ===");
-            
-            // Önce bir Role ekleyelim (eğer yoksa)
+            // Role oluştur
             var adminRole = await db.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
             if (adminRole == null)
             {
                 adminRole = new Role { Name = "Admin" };
                 db.Roles.Add(adminRole);
                 await db.SaveChangesAsync();
-                Console.WriteLine($"✅ Admin role created with ID: {adminRole.Id}");
+                Console.WriteLine($"✅ Admin role created (ID: {adminRole.Id})");
             }
-            else
-            {
-                Console.WriteLine($"✅ Admin role already exists with ID: {adminRole.Id}");
-            }
-            
-            // Admin kullanıcısını oluştur
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword("12345");
-            
+
+            // Admin user oluştur
             adminUser = new User
             {
                 Username = "admin",
-                PasswordHash = passwordHash,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("12345"),
                 RoleId = adminRole.Id,
                 Status = true
             };
-            
+
             db.Users.Add(adminUser);
             await db.SaveChangesAsync();
-            
-            Console.WriteLine($"\n✅ ADMIN USER CREATED SUCCESSFULLY");
-            Console.WriteLine($"   Username: admin");
-            Console.WriteLine($"   Password: 12345");
-            Console.WriteLine($"   Password Hash: {passwordHash}");
-            Console.WriteLine($"   Role: Admin (ID: {adminRole.Id})");
-            Console.WriteLine($"   Status: Active");
+            Console.WriteLine("✅ Admin user created (username: admin, password: 12345)");
         }
         else
         {
-            Console.WriteLine($"\n=== ADMIN USER ALREADY EXISTS ===");
-            Console.WriteLine($"Username: {adminUser.Username}");
-            Console.WriteLine($"Status: {adminUser.Status}");
-            Console.WriteLine($"Role ID: {adminUser.RoleId}");
-            
-            // DEBUG: Şifreyi kontrol et
-            if (!string.IsNullOrEmpty(adminUser.PasswordHash))
+            // Varolan admin -> şifre doğrulama
+            bool passwordOk = BCrypt.Net.BCrypt.Verify("12345", adminUser.PasswordHash ?? "");
+            if (!passwordOk)
             {
-                bool test = BCrypt.Net.BCrypt.Verify("12345", adminUser.PasswordHash);
-                Console.WriteLine($"Password '12345' verification: {test}");
-                
-                // Eğer şifre yanlışsa veya hash yoksa, güncelle
-                if (!test)
-                {
-                    Console.WriteLine("⚠️  Password hash mismatch. Updating...");
-                    adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("12345");
-                    await db.SaveChangesAsync();
-                    Console.WriteLine("✅ Password hash updated");
-                }
+                adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("12345");
+                await db.SaveChangesAsync();
+                Console.WriteLine("⚠️  Admin password hash updated");
             }
             else
             {
-                Console.WriteLine("⚠️  Password hash is empty. Setting new hash...");
-                adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("12345");
-                await db.SaveChangesAsync();
-                Console.WriteLine("✅ Password hash set");
+                Console.WriteLine("✅ Admin user exists, password OK");
             }
-        }
-        
-        // DEBUG: Son durumu göster
-        Console.WriteLine($"\n=== FINAL CHECK ===");
-        var finalAdmin = await db.Users
-            .FirstOrDefaultAsync(u => u.Username.ToLower() == "admin");
-        if (finalAdmin != null)
-        {
-            Console.WriteLine($"Final admin user:");
-            Console.WriteLine($"  ID: {finalAdmin.Id}");
-            Console.WriteLine($"  Username: '{finalAdmin.Username}'");
-            Console.WriteLine($"  Status: {finalAdmin.Status}");
-            Console.WriteLine($"  PasswordHash exists: {!string.IsNullOrEmpty(finalAdmin.PasswordHash)}");
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"\n❌ SEED ERROR ===");
-        Console.WriteLine($"Error: {ex.Message}");
-        Console.WriteLine($"Stack Trace: {ex.StackTrace}");
-        
+        Console.WriteLine($"❌ DATABASE SEED ERROR: {ex.Message}");
         if (ex.InnerException != null)
-        {
-            Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
-        }
+            Console.WriteLine($"   Inner: {ex.InnerException.Message}");
     }
 }
 
-// === MIDDLEWARE ===
-app.UseCors("FrontendDev");
+// =============================================
+// 🔹 MIDDLEWARE PIPELINE
+// =============================================
+// FIX: Environment'a göre CORS policy seç
+if (app.Environment.IsProduction())
+    app.UseCors("Production");
+else
+    app.UseCors("FrontendDev");
+
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
+// =============================================
+// 🔹 STARTUP LOG
+// =============================================
 Console.WriteLine("\n=== APPLICATION STARTED ===");
-Console.WriteLine($"JWT Key Length: {keyString.Length} characters");
-Console.WriteLine($"API Running on: http://localhost:5217");
-Console.WriteLine($"Login Endpoint: http://localhost:5217/api/auth/login");
-Console.WriteLine($"Press Ctrl+C to stop");
+Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
+Console.WriteLine($"Listening on: http://0.0.0.0:80 (container) | http://localhost:5000 (host)");
+Console.WriteLine("Press Ctrl+C to stop\n");
 
+// FIX: Container'da 0.0.0.0:80 dinle -> Dockerfile EXPOSE 80 ile uyumlu
+// Environment variable ile override edilebilir
 app.Run();
 
-// Yardımcı metod
-static string GenerateSecureKey(int length)
-{
-    const string validChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+-=[]{}|;:,.<>?";
-    var random = new Random();
-    var chars = new char[length];
-    
-    for (int i = 0; i < length; i++)
-    {
-        chars[i] = validChars[random.Next(validChars.Length)];
-    }
-    
-    return new string(chars);
-}
-
-// DateOnly için JSON converter sınıfları (Program.cs sonunda)
+// =============================================
+// JSON Converters
+// =============================================
 public class DateOnlyJsonConverter : JsonConverter<DateOnly>
 {
     private const string Format = "yyyy-MM-dd";
@@ -302,10 +248,7 @@ public class DateOnlyJsonConverter : JsonConverter<DateOnly>
     public override DateOnly Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var value = reader.GetString();
-        if (string.IsNullOrEmpty(value))
-            return default;
-            
-        return DateOnly.Parse(value);
+        return string.IsNullOrEmpty(value) ? default : DateOnly.Parse(value);
     }
 
     public override void Write(Utf8JsonWriter writer, DateOnly value, JsonSerializerOptions options)
