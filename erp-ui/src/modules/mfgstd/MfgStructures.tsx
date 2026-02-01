@@ -76,6 +76,7 @@ interface ProdStructure {
   CreatedBy: string;
   Rowversion: number;
   Rowkey: string;
+  RoutingOperationNo?: number;
 }
 
 // Inventory Part Interface
@@ -95,6 +96,28 @@ interface InventoryPart {
   rowversion: number;
   rowkey: string;
   createDate?: string;
+}
+
+// Routing Operation Interface - Controller'a göre
+interface RoutingOperationTab {
+  company: string;
+  contract: string;
+  partNo: string;
+  routingRevision: string;
+  bomType: string;
+  operationNo: number;
+  operationDescription?: string;
+  workCenterNo?: string;
+  machRunFactor?: number;
+  machSetupTime?: number;
+  laborClassNo?: string;
+  setupLaborClassNo?: string;
+  crewSize?: number;
+  setupCrewSize?: number;
+  runTimeCode?: string;
+  noteText?: string;
+  rowversion: Date;
+  rowkey: string;
 }
 
 // Düzenleme için Prod Structure Head DTO
@@ -131,6 +154,7 @@ interface ProdStructureCreateDto {
   lastActivityDate?: string | null;
   componentPart?: string | null;
   rowstate?: string | null;
+  routingOperationNo?: number;
 }
 
 // Ürün Ağacı satırı güncelleme için DTO
@@ -141,6 +165,22 @@ interface ProdStructureUpdateDto {
   componentPart?: string | null;
   rowstate?: string | null;
   rowversion: number;
+  routingOperationNo?: number | null;
+}
+
+
+// CompanySite Interface
+interface CompanySite {
+  company: string;
+  contract: string;
+  siteName?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+  rowversion: Date;
+  rowkey: string;
 }
 
 const tabs = ["Ürün Ağacı Satırları", "Detay Bilgiler"];
@@ -173,12 +213,20 @@ export default function ProdStructurePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
+
+  
   // Inventory Part Search States
   const [showInventorySearch, setShowInventorySearch] = useState(false);
   const [inventoryParts, setInventoryParts] = useState<InventoryPart[]>([]);
   const [inventoryLoading, setInventoryLoading] = useState(false);
-  const [searchForHead, setSearchForHead] = useState(false); // true: head için, false: line için
-  const [searchForLineIndex, setSearchForLineIndex] = useState<number>(-1); // hangi satır için
+  const [searchForHead, setSearchForHead] = useState(false);
+  const [searchForLineIndex, setSearchForLineIndex] = useState<number>(-1);
+
+  // Routing Operation Search States
+  const [showRoutingSearch, setShowRoutingSearch] = useState(false);
+  const [routingOperations, setRoutingOperations] = useState<RoutingOperationTab[]>([]);
+  const [routingLoading, setRoutingLoading] = useState(false);
+  const [searchForRoutingIndex, setSearchForRoutingIndex] = useState<number>(-1);
 
   // Yeni ürün ağacı başlığı formu state'leri
   const [newHeadData, setNewHeadData] = useState<ProdStructureHeadCreateDto>({
@@ -221,7 +269,6 @@ export default function ProdStructurePage() {
         selectedHead.EngChgLevel, 
         selectedHead.BomTypeDb
       );
-      // Seçilen başlığı düzenleme state'ine kopyala
       setEditingHead(selectedHead);
     } else {
       setStructureLines([]);
@@ -240,30 +287,22 @@ export default function ProdStructurePage() {
       }
       
       const apiData: ProdStructureHeadApiResponse[] = await response.json();
-      console.log("API'den gelen Ürün Ağacı Başlıkları:", apiData);
+      const formattedHeads: ProdStructureHead[] = apiData.map((apiHead, index) => ({
+        id: index + 1,
+        Contract: apiHead.contract || "",
+        PartNo: apiHead.partNo || "",
+        EngChgLevel: apiHead.engChgLevel || "A",
+        BomTypeDb: apiHead.bomTypeDb || "STANDARD",
+        NoteText: apiHead.noteText || undefined,
+        EffPhaseInDate: apiHead.effPhaseInDate || undefined,
+        EffPhaseOutDate: apiHead.effPhaseOutDate || undefined,
+        CreateDate: apiHead.createDate || new Date().toISOString().split('T')[0],
+        Rowstate: apiHead.rowstate || "ACTIVE",
+        CreatedBy: apiHead.createdBy || "admin",
+        Rowversion: apiHead.rowversion || 1,
+        Rowkey: apiHead.rowkey || `head-${Date.now()}-${index}`
+      }));
       
-      // API verisini frontend formatına çevir
-      const formattedHeads: ProdStructureHead[] = apiData.map((apiHead, index) => {
-        const head: ProdStructureHead = {
-          id: index + 1,
-          Contract: apiHead.contract || "",
-          PartNo: apiHead.partNo || "",
-          EngChgLevel: apiHead.engChgLevel || "A",
-          BomTypeDb: apiHead.bomTypeDb || "STANDARD",
-          NoteText: apiHead.noteText || undefined,
-          EffPhaseInDate: apiHead.effPhaseInDate || undefined,
-          EffPhaseOutDate: apiHead.effPhaseOutDate || undefined,
-          CreateDate: apiHead.createDate || new Date().toISOString().split('T')[0],
-          Rowstate: apiHead.rowstate || "ACTIVE",
-          CreatedBy: apiHead.createdBy || "admin",
-          Rowversion: apiHead.rowversion || 1,
-          Rowkey: apiHead.rowkey || `head-${Date.now()}-${index}`
-        };
-        
-        return head;
-      });
-      
-      console.log("Formatlanmış Ürün Ağacı Başlıkları:", formattedHeads);
       setProdStructureHeads(formattedHeads);
       setError(null);
       
@@ -284,7 +323,6 @@ export default function ProdStructurePage() {
       
       if (response.ok) {
         const apiData: ProdStructureApiResponse[] = await response.json();
-        console.log("API'den gelen Ürün Ağacı Satırları:", apiData);
         
         const formattedLines: ProdStructure[] = apiData.map((apiLine, index) => ({
           id: index + 1,
@@ -307,12 +345,9 @@ export default function ProdStructurePage() {
           Rowkey: apiLine.rowkey || `line-${Date.now()}-${index}`
         }));
         
-        console.log("Formatlanmış Ürün Ağacı Satırları:", formattedLines);
-        
         setStructureLines(formattedLines);
         setEditingStructures([...formattedLines]);
       } else {
-        console.log("Ürün Ağacı satırları bulunamadı veya hata oluştu");
         setStructureLines([]);
         setEditingStructures([]);
       }
@@ -330,7 +365,6 @@ export default function ProdStructurePage() {
       let url = "http://localhost:5217/api/inventorypart/search";
       
       if (searchTerm) {
-        // Search by part number or description
         url += `?partNo=${encodeURIComponent(searchTerm)}&description=${encodeURIComponent(searchTerm)}`;
       }
       
@@ -351,17 +385,84 @@ export default function ProdStructurePage() {
     }
   };
 
+  // Routing Operation Search Functions
+const searchRoutingOperations = async () => {
+  if (!selectedHead) {
+    console.error("Routing search için head seçili değil");
+    return;
+  }
+
+  try {
+    setRoutingLoading(true);
+    
+    // Contract'a göre company bilgisini al
+    const company = await getCompanyByContract(selectedHead.Contract);
+    console.log(`Routing search için company: ${company}, contract: ${selectedHead.Contract}`);
+    
+    const url = `http://localhost:5217/api/RoutingOperationTab/ByHead/${company}/${selectedHead.Contract}/${selectedHead.PartNo}/${selectedHead.EngChgLevel}/${selectedHead.BomTypeDb}`;
+    
+    console.log("Routing operation search URL:", url);
+    
+    const response = await fetch(url);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log("Routing operations received:", data);
+      setRoutingOperations(data);
+    } else if (response.status === 404) {
+      console.log("Routing operations not found, returning empty list");
+      setRoutingOperations([]);
+    } else {
+      const errorText = await response.text();
+      console.error("Routing operation search error:", errorText);
+      setRoutingOperations([]);
+    }
+  } catch (err) {
+    console.error("Routing operation search error:", err);
+    setRoutingOperations([]);
+  } finally {
+    setRoutingLoading(false);
+  }
+};
+
+// Company bilgisi alma fonksiyonu
+const getCompanyByContract = async (contract: string): Promise<string> => {
+  try {
+    // Önce tüm company'leri getir
+    const response = await fetch('http://localhost:5217/api/CompanySites');
+    
+    if (response.ok) {
+      const companySites: CompanySite[] = await response.json();
+      
+      // Contract'a göre company bul
+      const foundCompany = companySites.find(cs => cs.contract === contract);
+      
+      if (foundCompany) {
+        console.log(`Contract ${contract} için company bulundu: ${foundCompany.company}`);
+        return foundCompany.company;
+      } else {
+        console.warn(`Contract ${contract} için company bulunamadı, varsayılan olarak "001" kullanılıyor.`);
+        return "001"; // Varsayılan değer
+      }
+    } else {
+      console.warn("CompanySites API hatası, varsayılan company kullanılıyor.");
+      return "001"; // Varsayılan değer
+    }
+  } catch (err) {
+    console.error("Company bilgisi alınırken hata:", err);
+    return "001"; // Varsayılan değer
+  }
+};
+
   const handleInventoryPartSelect = (part: InventoryPart) => {
     console.log("Selected inventory part:", part);
     
     if (searchForHead && editingHead) {
-      // Head için parça seçildi
       setEditingHead({
         ...editingHead,
         PartNo: part.partNo
       });
     } else if (searchForLineIndex >= 0 && editingStructures[searchForLineIndex]) {
-      // Line için parça seçildi
       const updatedStructures = [...editingStructures];
       updatedStructures[searchForLineIndex] = {
         ...updatedStructures[searchForLineIndex],
@@ -369,13 +470,11 @@ export default function ProdStructurePage() {
       };
       setEditingStructures(updatedStructures);
     } else if (searchForHead && isCreatingNewHead) {
-      // Yeni head oluşturulurken parça seçildi
       setNewHeadData({
         ...newHeadData,
         partNo: part.partNo
       });
     } else if (!searchForHead && isCreatingNewHead && searchForLineIndex >= 0) {
-      // Yeni head için line'da parça seçildi
       const updatedNewStructures = [...newStructures];
       updatedNewStructures[searchForLineIndex] = {
         ...updatedNewStructures[searchForLineIndex],
@@ -387,11 +486,46 @@ export default function ProdStructurePage() {
     setShowInventorySearch(false);
   };
 
+  const handleRoutingSelect = (operation: RoutingOperationTab) => {
+    console.log("Selected routing operation:", operation);
+    
+    if (searchForRoutingIndex >= 0 && editingStructures[searchForRoutingIndex]) {
+      const updatedStructures = [...editingStructures];
+      updatedStructures[searchForRoutingIndex] = {
+        ...updatedStructures[searchForRoutingIndex],
+        OperationNo: operation.operationNo,
+        RoutingOperationNo: operation.operationNo
+      };
+      setEditingStructures(updatedStructures);
+    } else if (isCreatingNewHead && searchForRoutingIndex >= 0) {
+      const updatedNewStructures = [...newStructures];
+      updatedNewStructures[searchForRoutingIndex] = {
+        ...updatedNewStructures[searchForRoutingIndex],
+        operationNo: operation.operationNo,
+        routingOperationNo: operation.operationNo
+      };
+      setNewStructures(updatedNewStructures);
+    }
+    
+    setShowRoutingSearch(false);
+  };
+
   const openInventorySearch = (forHead: boolean, lineIndex?: number) => {
     setSearchForHead(forHead);
     setSearchForLineIndex(lineIndex ?? -1);
     setShowInventorySearch(true);
-    searchInventoryParts(""); // Boş arama ile tüm parçaları getir
+    searchInventoryParts("");
+  };
+
+  const openRoutingSearch = (lineIndex: number) => {
+    if (!selectedHead) {
+      alert("Önce bir ürün ağacı seçmelisiniz.");
+      return;
+    }
+    
+    setSearchForRoutingIndex(lineIndex);
+    setShowRoutingSearch(true);
+    searchRoutingOperations();
   };
 
   // SearchList için item'leri formatla
@@ -440,8 +574,8 @@ export default function ProdStructurePage() {
 
   const handleCancelEdit = useCallback(() => {
     setIsEditing(false);
-    setEditingHead(selectedHead); // Orijinal değerlere dön
-    setEditingStructures([...structureLines]); // Orijinal satırlara dön
+    setEditingHead(selectedHead);
+    setEditingStructures([...structureLines]);
   }, [selectedHead, structureLines]);
 
   const handleEditingHeadChange = useCallback((field: keyof ProdStructureHead, value: any) => {
@@ -458,7 +592,6 @@ export default function ProdStructurePage() {
     
     const updatedStructures = [...editingStructures];
     
-    // Sayısal alanlar için tip kontrolü
     if (field === 'LineItemNo' || field === 'LineSequence' || field === 'OperationNo') {
       updatedStructures[index] = {
         ...updatedStructures[index],
@@ -507,199 +640,172 @@ export default function ProdStructurePage() {
     setEditingStructures(updatedStructures);
   }, [editingStructures]);
 
-const handleSaveHead = useCallback(async () => {
-  if (!editingHead || !selectedHead) return;
+  const handleSaveHead = useCallback(async () => {
+    if (!editingHead || !selectedHead) return;
 
-  try {
-    setIsSaving(true);
-    
-    console.log("=== ÜRÜN AĞACI KAYIT BAŞLANGICI ===");
-    console.log("Seçili başlık:", selectedHead);
-    console.log("Düzenlenen satırlar:", editingStructures);
-
-    // 1. Ana başlığı güncelle
-    const updateDto: ProdStructureHeadUpdateDto = {
-      noteText: editingHead.NoteText || null,
-      effPhaseInDate: editingHead.EffPhaseInDate || null,
-      effPhaseOutDate: editingHead.EffPhaseOutDate || null,
-      rowstate: editingHead.Rowstate || "ACTIVE",
-      rowversion: selectedHead.Rowversion
-    };
-
-    console.log("Ana başlık DTO:", updateDto);
-
-    const response = await fetch(
-      `http://localhost:5217/api/prodstructurehead/${selectedHead.Contract}/${selectedHead.PartNo}/${selectedHead.EngChgLevel}/${selectedHead.BomTypeDb}`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updateDto)
-      }
-    );
-
-    if (response.ok) {
-      const updatedHeadApi: ProdStructureHeadApiResponse = await response.json();
-      console.log("Ana başlık güncellendi:", updatedHeadApi);
+    try {
+      setIsSaving(true);
       
-      const updatedHead: ProdStructureHead = {
-        id: selectedHead.id,
-        Contract: updatedHeadApi.contract,
-        PartNo: updatedHeadApi.partNo,
-        EngChgLevel: updatedHeadApi.engChgLevel,
-        BomTypeDb: updatedHeadApi.bomTypeDb,
-        NoteText: updatedHeadApi.noteText || undefined,
-        EffPhaseInDate: updatedHeadApi.effPhaseInDate || undefined,
-        EffPhaseOutDate: updatedHeadApi.effPhaseOutDate || undefined,
-        CreateDate: updatedHeadApi.createDate,
-        Rowstate: updatedHeadApi.rowstate || "ACTIVE",
-        CreatedBy: updatedHeadApi.createdBy,
-        Rowversion: updatedHeadApi.rowversion,
-        Rowkey: updatedHeadApi.rowkey
+      console.log("=== ÜRÜN AĞACI KAYIT BAŞLANGICI ===");
+      console.log("Seçili başlık:", selectedHead);
+      console.log("Düzenlenen satırlar:", editingStructures);
+
+      // 1. Ana başlığı güncelle
+      const updateDto: ProdStructureHeadUpdateDto = {
+        noteText: editingHead.NoteText || null,
+        effPhaseInDate: editingHead.EffPhaseInDate || null,
+        effPhaseOutDate: editingHead.EffPhaseOutDate || null,
+        rowstate: editingHead.Rowstate || "ACTIVE",
+        rowversion: selectedHead.Rowversion
       };
 
-      // 2. Ürün ağacı satırlarını işle
-      const lineResults = [];
-      const lineErrors = [];
+      const response = await fetch(
+        `http://localhost:5217/api/prodstructurehead/${selectedHead.Contract}/${selectedHead.PartNo}/${selectedHead.EngChgLevel}/${selectedHead.BomTypeDb}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updateDto)
+        }
+      );
 
-      for (const line of editingStructures) {
-        try {
-          console.log(`\n=== Satır ${line.LineItemNo} işleniyor ===`);
-          console.log("Satır verisi:", line);
-          
-          // Yeni satır mı? - Rowkey'den kontrol et
-          const isNewLine = line.Rowkey && line.Rowkey.includes('new-line');
-          
-          if (isNewLine) {
-            console.log(`YENİ SATIR oluşturuluyor: ${line.LineItemNo}`);
+      if (response.ok) {
+        const updatedHeadApi: ProdStructureHeadApiResponse = await response.json();
+        console.log("Ana başlık güncellendi:", updatedHeadApi);
+        
+        const updatedHead: ProdStructureHead = {
+          id: selectedHead.id,
+          Contract: updatedHeadApi.contract,
+          PartNo: updatedHeadApi.partNo,
+          EngChgLevel: updatedHeadApi.engChgLevel,
+          BomTypeDb: updatedHeadApi.bomTypeDb,
+          NoteText: updatedHeadApi.noteText || undefined,
+          EffPhaseInDate: updatedHeadApi.effPhaseInDate || undefined,
+          EffPhaseOutDate: updatedHeadApi.effPhaseOutDate || undefined,
+          CreateDate: updatedHeadApi.createDate,
+          Rowstate: updatedHeadApi.rowstate || "ACTIVE",
+          CreatedBy: updatedHeadApi.createdBy,
+          Rowversion: updatedHeadApi.rowversion,
+          Rowkey: updatedHeadApi.rowkey
+        };
+
+        // 2. Ürün ağacı satırlarını işle
+        const lineResults = [];
+        const lineErrors = [];
+
+        for (const line of editingStructures) {
+          try {
+            console.log(`\n=== Satır ${line.LineItemNo} işleniyor ===`);
+            console.log("Satır verisi:", line);
             
-            const lineData: ProdStructureCreateDto = {
-              lineItemNo: line.LineItemNo,
-              lineSequence: line.LineSequence,
-              operationNo: line.OperationNo,
-              componentPart: line.ComponentPart || "",
+            const isNewLine = line.Rowkey && line.Rowkey.includes('new-line');
+            
+            if (isNewLine) {
+              console.log(`YENİ SATIR oluşturuluyor: ${line.LineItemNo}`);
+              
+              const lineData: ProdStructureCreateDto = {
+                lineItemNo: line.LineItemNo,
+                lineSequence: line.LineSequence,
+                operationNo: line.OperationNo,
+                componentPart: line.ComponentPart || "",
+                noteText: line.NoteText || null,
+                source: line.Source || null,
+                lastActivityDate: line.LastActivityDate || null,
+                rowstate: line.Rowstate || "ACTIVE",
+                routingOperationNo: line.RoutingOperationNo
+              };
+
+              const createResponse = await fetch(
+                `http://localhost:5217/api/prodstructure/head/${updatedHead.Contract}/${updatedHead.PartNo}/${updatedHead.EngChgLevel}/${updatedHead.BomTypeDb}/000`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(lineData)
+                }
+              );
+
+              if (createResponse.ok) {
+                const createdLine = await createResponse.json();
+                console.log(`Satır ${line.LineItemNo} başarıyla OLUŞTURULDU:`, createdLine);
+                lineResults.push(createdLine);
+              } else if (createResponse.status === 409) {
+                console.log(`Satır ${line.LineItemNo} zaten var, güncellenecek`);
+              } else {
+                const errorText = await createResponse.text();
+                console.error(`Satır ${line.LineItemNo} oluşturma hatası:`, errorText);
+                lineErrors.push(`Satır ${line.LineItemNo}: ${errorText}`);
+              }
+            }
+            
+            // Mevcut satırı güncelle
+            console.log(`MEVCUT SATIR güncelleniyor: ${line.LineItemNo}`);
+            
+            const alternativeNo = "000";
+            
+            const lineUpdateDto: ProdStructureUpdateDto = {
               noteText: line.NoteText || null,
               source: line.Source || null,
               lastActivityDate: line.LastActivityDate || null,
-              rowstate: line.Rowstate || "ACTIVE"
+              componentPart: line.ComponentPart || null,
+              rowstate: line.Rowstate || "ACTIVE",
+              rowversion: line.Rowversion || 1,
+              routingOperationNo: line.RoutingOperationNo || null
             };
 
-            console.log("Yeni satır POST verisi:", lineData);
-            console.log("POST URL:", `http://localhost:5217/api/prodstructure/head/${updatedHead.Contract}/${updatedHead.PartNo}/${updatedHead.EngChgLevel}/${updatedHead.BomTypeDb}/000`);
+            const putUrl = `http://localhost:5217/api/prodstructure/${updatedHead.Contract}/${updatedHead.PartNo}/${updatedHead.EngChgLevel}/${updatedHead.BomTypeDb}/${alternativeNo}/${line.LineItemNo}/${line.LineSequence}/${line.OperationNo}`;
+            console.log("PUT URL:", putUrl);
 
-            const createResponse = await fetch(
-              `http://localhost:5217/api/prodstructure/head/${updatedHead.Contract}/${updatedHead.PartNo}/${updatedHead.EngChgLevel}/${updatedHead.BomTypeDb}/000`,
+            const updateResponse = await fetch(
+              putUrl,
               {
-                method: 'POST',
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(lineData)
+                body: JSON.stringify(lineUpdateDto)
               }
             );
 
-            if (createResponse.ok) {
-              const createdLine = await createResponse.json();
-              console.log(`Satır ${line.LineItemNo} başarıyla OLUŞTURULDU:`, createdLine);
-              lineResults.push(createdLine);
-            } else if (createResponse.status === 409) {
-              console.log(`Satır ${line.LineItemNo} zaten var, güncellenecek`);
+            if (updateResponse.ok) {
+              const updatedLine = await updateResponse.json();
+              console.log(`Satır ${line.LineItemNo} başarıyla GÜNCELLENDİ:`, updatedLine);
+              lineResults.push(updatedLine);
             } else {
-              const errorText = await createResponse.text();
-              console.error(`Satır ${line.LineItemNo} oluşturma hatası:`, errorText);
+              const errorText = await updateResponse.text();
+              console.error(`Satır ${line.LineItemNo} güncelleme hatası:`, errorText);
               lineErrors.push(`Satır ${line.LineItemNo}: ${errorText}`);
             }
+          } catch (err) {
+            console.error(`Satır ${line.LineItemNo} işlem hatası:`, err);
+            lineErrors.push(`Satır ${line.LineItemNo}: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`);
           }
-          
-          // Mevcut satırı güncelle
-          console.log(`MEVCUT SATIR güncelleniyor: ${line.LineItemNo}`);
-          
-          // ALTERNATIVE_NO için her zaman "000" kullanıyoruz (frontend'de sabit)
-          const alternativeNo = "000";
-          
-          const lineUpdateDto: ProdStructureUpdateDto = {
-            noteText: line.NoteText || null,
-            source: line.Source || null,
-            lastActivityDate: line.LastActivityDate || null,
-            componentPart: line.ComponentPart || null,
-            rowstate: line.Rowstate || "ACTIVE",
-            rowversion: line.Rowversion || 1
-          };
-
-          console.log("Satır PUT verisi:", lineUpdateDto);
-          console.log("Satır bilgileri:", {
-            contract: updatedHead.Contract,
-            partNo: updatedHead.PartNo,
-            engChgLevel: updatedHead.EngChgLevel,
-            bomType: updatedHead.BomTypeDb,
-            alternativeNo: alternativeNo,
-            lineItemNo: line.LineItemNo,
-            lineSequence: line.LineSequence,
-            operationNo: line.OperationNo
-          });
-          
-          const putUrl = `http://localhost:5217/api/prodstructure/${updatedHead.Contract}/${updatedHead.PartNo}/${updatedHead.EngChgLevel}/${updatedHead.BomTypeDb}/${alternativeNo}/${line.LineItemNo}/${line.LineSequence}/${line.OperationNo}`;
-          console.log("PUT URL:", putUrl);
-
-          const updateResponse = await fetch(
-            putUrl,
-            {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(lineUpdateDto)
-            }
-          );
-
-          if (updateResponse.ok) {
-            const updatedLine = await updateResponse.json();
-            console.log(`Satır ${line.LineItemNo} başarıyla GÜNCELLENDİ:`, updatedLine);
-            lineResults.push(updatedLine);
-          } else {
-            const errorText = await updateResponse.text();
-            console.error(`Satır ${line.LineItemNo} güncelleme hatası:`, errorText);
-            console.error(`HTTP Status: ${updateResponse.status}`);
-            lineErrors.push(`Satır ${line.LineItemNo}: ${errorText}`);
-          }
-        } catch (err) {
-          console.error(`Satır ${line.LineItemNo} işlem hatası:`, err);
-          lineErrors.push(`Satır ${line.LineItemNo}: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`);
         }
+
+        if (lineErrors.length > 0) {
+          alert(`Ürün Ağacı başlığı güncellendi ancak bazı satırlar işlenemedi:\n${lineErrors.join('\n')}`);
+        }
+
+        await fetchProdStructureHeads();
+        
+        setSelectedHead(updatedHead);
+        setEditingHead(updatedHead);
+        
+        await fetchStructureLines(updatedHead.Contract, updatedHead.PartNo, updatedHead.EngChgLevel, updatedHead.BomTypeDb);
+        
+        setIsEditing(false);
+        alert("Ürün Ağacı ve satırlar başarıyla güncellendi!");
+        
+      } else {
+        const errorText = await response.text();
+        console.error("Ana başlık güncelleme hatası:", errorText);
+        throw new Error(`Ürün Ağacı başlığı güncellenemedi: ${errorText}`);
       }
-
-      // 3. Sonuçları işle
-      console.log("\n=== İŞLEM SONUÇLARI ===");
-      console.log("Başarılı satırlar:", lineResults.length);
-      console.log("Hatalar:", lineErrors.length, lineErrors);
-
-      if (lineErrors.length > 0) {
-        alert(`Ürün Ağacı başlığı güncellendi ancak bazı satırlar işlenemedi:\n${lineErrors.join('\n')}`);
-      }
-
-      // 4. Verileri yeniden yükle
-      console.log("Veriler yeniden yükleniyor...");
-      await fetchProdStructureHeads();
-      
-      // Seçili başlığı güncelle
-      setSelectedHead(updatedHead);
-      setEditingHead(updatedHead);
-      
-      // Ürün ağacı satırlarını yeniden yükle
-      await fetchStructureLines(updatedHead.Contract, updatedHead.PartNo, updatedHead.EngChgLevel, updatedHead.BomTypeDb);
-      
-      setIsEditing(false);
-      alert("Ürün Ağacı ve satırlar başarıyla güncellendi!");
-      
-    } else {
-      const errorText = await response.text();
-      console.error("Ana başlık güncelleme hatası:", errorText);
-      throw new Error(`Ürün Ağacı başlığı güncellenemedi: ${errorText}`);
+    } catch (err) {
+      console.error("Ürün Ağacı güncellenirken hata:", err);
+      alert(`Hata: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`);
+    } finally {
+      setIsSaving(false);
     }
-  } catch (err) {
-    console.error("Ürün Ağacı güncellenirken hata:", err);
-    alert(`Hata: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`);
-  } finally {
-    setIsSaving(false);
-  }
-}, [editingHead, selectedHead, editingStructures, fetchProdStructureHeads]);
+  }, [editingHead, selectedHead, editingStructures, fetchProdStructureHeads]);
 
   const handleDeleteHead = useCallback(async () => {
     if (!selectedHead) return;
@@ -717,10 +823,8 @@ const handleSaveHead = useCallback(async () => {
       );
 
       if (response.ok) {
-        // Listeyi yeniden yükle
         await fetchProdStructureHeads();
         
-        // Seçili başlığı temizle
         setSelectedHead(null);
         setEditingHead(null);
         setEditingStructures([]);
@@ -789,7 +893,6 @@ const handleSaveHead = useCallback(async () => {
     try {
       console.log("Yeni Ürün Ağacı başlığı kaydediliyor:", newHeadData);
 
-      // 1. Önce ana başlığı kaydet
       const headResponse = await fetch('http://localhost:5217/api/prodstructurehead', {
         method: 'POST',
         headers: {
@@ -807,7 +910,6 @@ const handleSaveHead = useCallback(async () => {
       const savedHead: ProdStructureHeadApiResponse = await headResponse.json();
       console.log("Ürün Ağacı başlığı başarıyla kaydedildi:", savedHead);
 
-      // 2. Ürün ağacı satırlarını kaydet
       const savedLines: any[] = [];
       let lineErrors: string[] = [];
 
@@ -850,7 +952,6 @@ const handleSaveHead = useCallback(async () => {
         }
       }
 
-      // 3. Sonuçları işle
       if (lineErrors.length > 0) {
         console.warn("Bazı satırlar kaydedilemedi:", lineErrors);
         alert(`Ürün Ağacı başlığı kaydedildi ancak bazı satırlar kaydedilemedi:\n${lineErrors.join('\n')}`);
@@ -861,10 +962,8 @@ const handleSaveHead = useCallback(async () => {
         console.log("Tüm satırlar başarıyla kaydedildi:", savedLines.length);
       }
 
-      // 4. ÜRÜN AĞACI LİSTESİNİ YENİDEN ÇEK
       await fetchProdStructureHeads();
       
-      // 5. Yeni eklenen başlığı frontend formatına çevir ve seç
       const newHead: ProdStructureHead = {
         id: prodStructureHeads.length + 1,
         Contract: savedHead.contract,
@@ -885,7 +984,6 @@ const handleSaveHead = useCallback(async () => {
       setEditingHead(newHead);
       setIsCreatingNewHead(false);
       
-      // 6. Formu sıfırla
       resetForm();
       
       alert(`Ürün Ağacı başlığı başarıyla oluşturuldu: ${savedHead.partNo}\nKaydedilen satır sayısı: ${savedLines.length}`);
@@ -1189,6 +1287,276 @@ const handleSaveHead = useCallback(async () => {
           </div>
         )}
 
+        {/* Routing Operation Search Modal */}
+        {showRoutingSearch && (
+          <div style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.8)",
+            zIndex: 2000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}>
+            <div style={{
+              backgroundColor: "#1e293b",
+              borderRadius: "12px",
+              padding: "20px",
+              width: "80%",
+              maxWidth: "1200px",
+              maxHeight: "80vh",
+              overflow: "hidden",
+              border: "2px solid #f59e0b"
+            }}>
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "15px",
+                paddingBottom: "15px",
+                borderBottom: "1px solid #334155"
+              }}>
+                <h2 style={{ 
+                  margin: 0, 
+                  color: "#f1f5f9", 
+                  fontSize: "1.2rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px"
+                }}>
+                  <i className="fas fa-cogs" style={{ color: "#f59e0b" }}></i>
+                  Routing Operasyon Seçimi
+                </h2>
+                <button
+                  onClick={() => setShowRoutingSearch(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#94a3b8",
+                    cursor: "pointer",
+                    fontSize: "1.2rem"
+                  }}
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+
+              <div style={{ marginBottom: "15px" }}>
+  <div style={{
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    padding: "10px",
+    borderRadius: "6px",
+    borderLeft: "3px solid #f59e0b",
+    fontSize: "0.85rem",
+    color: "#f1f5f9"
+  }}>
+    <div style={{ display: "flex", gap: "15px", flexWrap: "wrap" }}>
+      <span><strong>Şirket:</strong> {selectedHead ? "Yükleniyor..." : "001"}</span>
+      <span><strong>Parça:</strong> {selectedHead?.PartNo || newHeadData?.partNo}</span>
+      <span><strong>Kontrat:</strong> {selectedHead?.Contract || newHeadData?.contract}</span>
+      <span><strong>Revizyon:</strong> {selectedHead?.EngChgLevel || newHeadData?.engChgLevel}</span>
+      <span><strong>BOM Tipi:</strong> {selectedHead?.BomTypeDb || newHeadData?.bomTypeDb}</span>
+    </div>
+  </div>
+</div>
+
+              <div style={{
+                maxHeight: "50vh",
+                overflowY: "auto",
+                borderRadius: "8px",
+                border: "1px solid #334155"
+              }}>
+                <table style={{ 
+                  width: "100%", 
+                  borderCollapse: "collapse" 
+                }}>
+                  <thead style={{
+                    backgroundColor: "#334155",
+                    position: "sticky",
+                    top: 0
+                  }}>
+                    <tr>
+                      <th style={{ 
+                        padding: "12px 15px", 
+                        textAlign: "left", 
+                        color: "#f1f5f9", 
+                        fontSize: "0.85rem",
+                        borderBottom: "1px solid #475569"
+                      }}>
+                        Operasyon No
+                      </th>
+                      <th style={{ 
+                        padding: "12px 15px", 
+                        textAlign: "left", 
+                        color: "#f1f5f9", 
+                        fontSize: "0.85rem",
+                        borderBottom: "1px solid #475569"
+                      }}>
+                        Açıklama
+                      </th>
+                      <th style={{ 
+                        padding: "12px 15px", 
+                        textAlign: "left", 
+                        color: "#f1f5f9", 
+                        fontSize: "0.85rem",
+                        borderBottom: "1px solid #475569"
+                      }}>
+                        İş Merkezi
+                      </th>
+                      <th style={{ 
+                        padding: "12px 15px", 
+                        textAlign: "left", 
+                        color: "#f1f5f9", 
+                        fontSize: "0.85rem",
+                        borderBottom: "1px solid #475569"
+                      }}>
+                        Kurulum Süresi
+                      </th>
+                      <th style={{ 
+                        padding: "12px 15px", 
+                        textAlign: "left", 
+                        color: "#f1f5f9", 
+                        fontSize: "0.85rem",
+                        borderBottom: "1px solid #475569"
+                      }}>
+                        Çalıştırma Faktörü
+                      </th>
+                      <th style={{ 
+                        padding: "12px 15px", 
+                        textAlign: "left", 
+                        color: "#f1f5f9", 
+                        fontSize: "0.85rem",
+                        borderBottom: "1px solid #475569"
+                      }}>
+                        İşlem
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {routingLoading ? (
+                      <tr>
+                        <td colSpan={6} style={{ 
+                          padding: "40px", 
+                          textAlign: "center", 
+                          color: "#94a3b8" 
+                        }}>
+                          <i className="fas fa-spinner fa-spin" style={{ marginRight: "10px" }}></i>
+                          Routing operasyonları yükleniyor...
+                        </td>
+                      </tr>
+                    ) : routingOperations.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} style={{ 
+                          padding: "40px", 
+                          textAlign: "center", 
+                          color: "#94a3b8" 
+                        }}>
+                          <i className="fas fa-cogs" style={{ marginRight: "10px" }}></i>
+                          Bu parça için routing operasyonu bulunamadı
+                        </td>
+                      </tr>
+                    ) : (
+                      routingOperations.map((operation) => (
+                        <tr key={`${operation.operationNo}`}
+                          style={{
+                            borderBottom: "1px solid #334155",
+                            backgroundColor: "rgba(30, 41, 59, 0.5)"
+                          }}
+                        >
+                          <td style={{ 
+                            padding: "12px 15px", 
+                            color: "#f1f5f9",
+                            fontSize: "0.85rem",
+                            fontWeight: "600"
+                          }}>
+                            {operation.operationNo}
+                          </td>
+                          <td style={{ 
+                            padding: "12px 15px", 
+                            color: "#94a3b8",
+                            fontSize: "0.85rem"
+                          }}>
+                            {operation.operationDescription || '-'}
+                          </td>
+                          <td style={{ 
+                            padding: "12px 15px", 
+                            color: "#94a3b8",
+                            fontSize: "0.85rem"
+                          }}>
+                            {operation.workCenterNo || '-'}
+                          </td>
+                          <td style={{ 
+                            padding: "12px 15px", 
+                            color: "#94a3b8",
+                            fontSize: "0.85rem"
+                          }}>
+                            {operation.machSetupTime || '-'}
+                          </td>
+                          <td style={{ 
+                            padding: "12px 15px", 
+                            color: "#94a3b8",
+                            fontSize: "0.85rem"
+                          }}>
+                            {operation.machRunFactor || '-'}
+                          </td>
+                          <td style={{ 
+                            padding: "12px 15px",
+                            textAlign: "center"
+                          }}>
+                            <button
+                              onClick={() => handleRoutingSelect(operation)}
+                              style={{
+                                background: "#10b981",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "4px",
+                                padding: "6px 12px",
+                                fontSize: "0.8rem",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px"
+                              }}
+                            >
+                              <i className="fas fa-check"></i>
+                              <span>Seç</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{
+                marginTop: "15px",
+                paddingTop: "15px",
+                borderTop: "1px solid #334155",
+                textAlign: "right"
+              }}>
+                <button
+                  onClick={() => setShowRoutingSearch(false)}
+                  style={{
+                    background: "#64748b",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "8px 16px",
+                    fontSize: "0.85rem",
+                    cursor: "pointer"
+                  }}
+                >
+                  Kapat
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* SearchList GİZLİ durumda */}
         {!isSearchListVisible && (
           <div 
@@ -1353,7 +1721,7 @@ const handleSaveHead = useCallback(async () => {
               border: "1px solid #334155"
             }}>
               <div>
-                <label style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "5px", display: "block" }}>
+                <label style={labelStyle}>
                   Kontrat <span style={{ color: "#ef4444" }}>*</span>
                 </label>
                 <input
@@ -1365,7 +1733,7 @@ const handleSaveHead = useCallback(async () => {
                 />
               </div>
               <div>
-                <label style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "5px", display: "block" }}>
+                <label style={labelStyle}>
                   Parça No <span style={{ color: "#ef4444" }}>*</span>
                 </label>
                 <div style={{ display: "flex", gap: "8px" }}>
@@ -1397,7 +1765,7 @@ const handleSaveHead = useCallback(async () => {
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "5px", display: "block" }}>
+                <label style={labelStyle}>
                   Revizyon Seviyesi <span style={{ color: "#ef4444" }}>*</span>
                 </label>
                 <input
@@ -1409,7 +1777,7 @@ const handleSaveHead = useCallback(async () => {
                 />
               </div>
               <div>
-                <label style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "5px", display: "block" }}>
+                <label style={labelStyle}>
                   BOM Tipi <span style={{ color: "#ef4444" }}>*</span>
                 </label>
                 <select
@@ -1424,7 +1792,7 @@ const handleSaveHead = useCallback(async () => {
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "5px", display: "block" }}>
+                <label style={labelStyle}>
                   Geçerli Başlangıç Tarihi
                 </label>
                 <input
@@ -1435,7 +1803,7 @@ const handleSaveHead = useCallback(async () => {
                 />
               </div>
               <div>
-                <label style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "5px", display: "block" }}>
+                <label style={labelStyle}>
                   Geçerli Bitiş Tarihi
                 </label>
                 <input
@@ -1506,7 +1874,7 @@ const handleSaveHead = useCallback(async () => {
               {/* Grid Header */}
               <div style={{
                 display: "grid",
-                gridTemplateColumns: "80px 80px 80px 2fr 80px",
+                gridTemplateColumns: "80px 80px 100px 2fr 80px",
                 backgroundColor: "#334155",
                 padding: "12px 15px",
                 borderBottom: "1px solid #475569",
@@ -1531,7 +1899,7 @@ const handleSaveHead = useCallback(async () => {
                     key={index}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "80px 80px 80px 2fr 80px",
+                      gridTemplateColumns: "80px 80px 100px 2fr 80px",
                       padding: "10px 15px",
                       borderBottom: "1px solid #334155",
                       fontSize: "0.85rem",
@@ -1574,7 +1942,7 @@ const handleSaveHead = useCallback(async () => {
                         min="0"
                       />
                     </div>
-                    <div>
+                    <div style={{ display: "flex", gap: "4px" }}>
                       <input
                         type="number"
                         value={line.operationNo}
@@ -1590,6 +1958,57 @@ const handleSaveHead = useCallback(async () => {
                         }}
                         min="0"
                       />
+                      <button
+  onClick={async () => {
+    if (newHeadData.partNo) {
+      setSearchForRoutingIndex(index);
+      setShowRoutingSearch(true);
+      if (newHeadData.contract && newHeadData.partNo && newHeadData.engChgLevel && newHeadData.bomTypeDb) {
+        try {
+          // Contract'a göre company bilgisini al
+          const company = await getCompanyByContract(newHeadData.contract);
+          console.log(`Yeni head için routing search: company=${company}, contract=${newHeadData.contract}, part=${newHeadData.partNo}`);
+          
+          const url = `http://localhost:5217/api/RoutingOperationTab/ByHead/${company}/${newHeadData.contract}/${newHeadData.partNo}/${newHeadData.engChgLevel}/${newHeadData.bomTypeDb}`;
+          console.log("Routing search URL:", url);
+          
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            console.log("Routing operations found:", data.length);
+            setRoutingOperations(data);
+          } else if (response.status === 404) {
+            console.log("Routing operations not found");
+            setRoutingOperations([]);
+          } else {
+            console.error("Routing search error:", await response.text());
+            setRoutingOperations([]);
+          }
+        } catch (err) {
+          console.error("Routing operation search error:", err);
+          setRoutingOperations([]);
+        }
+      }
+    } else {
+      alert("Önce parça numarasını giriniz.");
+    }
+  }}
+  style={{
+    background: "#f59e0b",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    padding: "6px 8px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: "32px"
+  }}
+  title="Routing Operasyonu Seç"
+>
+  <i className="fas fa-cogs" style={{ fontSize: "0.7rem" }}></i>
+</button>
                     </div>
                     <div style={{ display: "flex", gap: "8px" }}>
                       <input
@@ -2008,6 +2427,275 @@ const handleSaveHead = useCallback(async () => {
             }}>
               <button
                 onClick={() => setShowInventorySearch(false)}
+                style={{
+                  background: "#64748b",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "8px 16px",
+                  fontSize: "0.85rem",
+                  cursor: "pointer"
+                }}
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Routing Operation Search Modal */}
+      {showRoutingSearch && selectedHead && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          zIndex: 2000,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
+          <div style={{
+            backgroundColor: "#1e293b",
+            borderRadius: "12px",
+            padding: "20px",
+            width: "80%",
+            maxWidth: "1200px",
+            maxHeight: "80vh",
+            overflow: "hidden",
+            border: "2px solid #f59e0b"
+          }}>
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "15px",
+              paddingBottom: "15px",
+              borderBottom: "1px solid #334155"
+            }}>
+              <h2 style={{ 
+                margin: 0, 
+                color: "#f1f5f9", 
+                fontSize: "1.2rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px"
+              }}>
+                <i className="fas fa-cogs" style={{ color: "#f59e0b" }}></i>
+                Routing Operasyon Seçimi
+              </h2>
+              <button
+                onClick={() => setShowRoutingSearch(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#94a3b8",
+                  cursor: "pointer",
+                  fontSize: "1.2rem"
+                }}
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div style={{ marginBottom: "15px" }}>
+              <div style={{
+                backgroundColor: "rgba(245, 158, 11, 0.1)",
+                padding: "10px",
+                borderRadius: "6px",
+                borderLeft: "3px solid #f59e0b",
+                fontSize: "0.85rem",
+                color: "#f1f5f9"
+              }}>
+                <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+                  <span><strong>Parça:</strong> {selectedHead.PartNo}</span>
+                  <span><strong>Kontrat:</strong> {selectedHead.Contract}</span>
+                  <span><strong>Revizyon:</strong> {selectedHead.EngChgLevel}</span>
+                  <span><strong>BOM Tipi:</strong> {selectedHead.BomTypeDb}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              maxHeight: "50vh",
+              overflowY: "auto",
+              borderRadius: "8px",
+              border: "1px solid #334155"
+            }}>
+              <table style={{ 
+                width: "100%", 
+                borderCollapse: "collapse" 
+              }}>
+                <thead style={{
+                  backgroundColor: "#334155",
+                  position: "sticky",
+                  top: 0
+                }}>
+                  <tr>
+                    <th style={{ 
+                      padding: "12px 15px", 
+                      textAlign: "left", 
+                      color: "#f1f5f9", 
+                      fontSize: "0.85rem",
+                      borderBottom: "1px solid #475569"
+                    }}>
+                      Operasyon No
+                    </th>
+                    <th style={{ 
+                      padding: "12px 15px", 
+                      textAlign: "left", 
+                      color: "#f1f5f9", 
+                      fontSize: "0.85rem",
+                      borderBottom: "1px solid #475569"
+                    }}>
+                      Açıklama
+                    </th>
+                    <th style={{ 
+                      padding: "12px 15px", 
+                      textAlign: "left", 
+                      color: "#f1f5f9", 
+                      fontSize: "0.85rem",
+                      borderBottom: "1px solid #475569"
+                    }}>
+                      İş Merkezi
+                    </th>
+                    <th style={{ 
+                      padding: "12px 15px", 
+                      textAlign: "left", 
+                      color: "#f1f5f9", 
+                      fontSize: "0.85rem",
+                      borderBottom: "1px solid #475569"
+                    }}>
+                      Kurulum Süresi
+                    </th>
+                    <th style={{ 
+                      padding: "12px 15px", 
+                      textAlign: "left", 
+                      color: "#f1f5f9", 
+                      fontSize: "0.85rem",
+                      borderBottom: "1px solid #475569"
+                    }}>
+                      Çalıştırma Faktörü
+                    </th>
+                    <th style={{ 
+                      padding: "12px 15px", 
+                      textAlign: "left", 
+                      color: "#f1f5f9", 
+                      fontSize: "0.85rem",
+                      borderBottom: "1px solid #475569"
+                    }}>
+                      İşlem
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {routingLoading ? (
+                    <tr>
+                      <td colSpan={6} style={{ 
+                        padding: "40px", 
+                        textAlign: "center", 
+                        color: "#94a3b8" 
+                      }}>
+                        <i className="fas fa-spinner fa-spin" style={{ marginRight: "10px" }}></i>
+                        Routing operasyonları yükleniyor...
+                      </td>
+                    </tr>
+                  ) : routingOperations.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ 
+                        padding: "40px", 
+                        textAlign: "center", 
+                        color: "#94a3b8" 
+                      }}>
+                        <i className="fas fa-cogs" style={{ marginRight: "10px" }}></i>
+                        Bu parça için routing operasyonu bulunamadı
+                      </td>
+                    </tr>
+                  ) : (
+                    routingOperations.map((operation) => (
+                      <tr key={`${operation.operationNo}`}
+                        style={{
+                          borderBottom: "1px solid #334155",
+                          backgroundColor: "rgba(30, 41, 59, 0.5)"
+                        }}
+                      >
+                        <td style={{ 
+                          padding: "12px 15px", 
+                          color: "#f1f5f9",
+                          fontSize: "0.85rem",
+                          fontWeight: "600"
+                        }}>
+                          {operation.operationNo}
+                        </td>
+                        <td style={{ 
+                          padding: "12px 15px", 
+                          color: "#94a3b8",
+                          fontSize: "0.85rem"
+                        }}>
+                          {operation.operationDescription || '-'}
+                        </td>
+                        <td style={{ 
+                          padding: "12px 15px", 
+                          color: "#94a3b8",
+                          fontSize: "0.85rem"
+                        }}>
+                          {operation.workCenterNo || '-'}
+                        </td>
+                        <td style={{ 
+                          padding: "12px 15px", 
+                          color: "#94a3b8",
+                          fontSize: "0.85rem"
+                        }}>
+                          {operation.machSetupTime || '-'}
+                        </td>
+                        <td style={{ 
+                          padding: "12px 15px", 
+                          color: "#94a3b8",
+                          fontSize: "0.85rem"
+                        }}>
+                          {operation.machRunFactor || '-'}
+                        </td>
+                        <td style={{ 
+                          padding: "12px 15px",
+                          textAlign: "center"
+                        }}>
+                          <button
+                            onClick={() => handleRoutingSelect(operation)}
+                            style={{
+                              background: "#10b981",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "4px",
+                              padding: "6px 12px",
+                              fontSize: "0.8rem",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "5px"
+                            }}
+                          >
+                            <i className="fas fa-check"></i>
+                            <span>Seç</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{
+              marginTop: "15px",
+              paddingTop: "15px",
+              borderTop: "1px solid #334155",
+              textAlign: "right"
+            }}>
+              <button
+                onClick={() => setShowRoutingSearch(false)}
                 style={{
                   background: "#64748b",
                   color: "white",
@@ -2640,7 +3328,7 @@ const handleSaveHead = useCallback(async () => {
                     }}>
                       <div style={{
                         display: "grid",
-                        gridTemplateColumns: "80px 80px 80px 2fr 120px 80px",
+                        gridTemplateColumns: "80px 80px 100px 2fr 120px 80px",
                         backgroundColor: "#334155",
                         padding: "12px 15px",
                         borderBottom: "1px solid #475569",
@@ -2661,7 +3349,7 @@ const handleSaveHead = useCallback(async () => {
                           key={line.id}
                           style={{
                             display: "grid",
-                            gridTemplateColumns: "80px 80px 80px 2fr 120px 80px",
+                            gridTemplateColumns: "80px 80px 100px 2fr 120px 80px",
                             padding: "10px 15px",
                             borderBottom: "1px solid #334155",
                             fontSize: "0.85rem",
@@ -2712,25 +3400,58 @@ const handleSaveHead = useCallback(async () => {
                               line.LineSequence
                             )}
                           </div>
-                          <div>
+                          <div style={{ display: "flex", gap: "4px" }}>
                             {isEditing ? (
-                              <input
-                                type="number"
-                                value={line.OperationNo}
-                                onChange={(e) => handleEditingStructureChange(index, 'OperationNo', e.target.value)}
-                                style={{
-                                  width: "100%",
-                                  padding: "6px 8px",
-                                  backgroundColor: "rgba(30, 41, 59, 0.8)",
-                                  border: "1px solid #475569",
-                                  borderRadius: "4px",
-                                  color: "#f1f5f9",
-                                  fontSize: "0.85rem"
-                                }}
-                                min="0"
-                              />
+                              <>
+                                <input
+                                  type="number"
+                                  value={line.OperationNo}
+                                  onChange={(e) => handleEditingStructureChange(index, 'OperationNo', e.target.value)}
+                                  style={{
+                                    width: "100%",
+                                    padding: "6px 8px",
+                                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                                    border: "1px solid #475569",
+                                    borderRadius: "4px",
+                                    color: "#f1f5f9",
+                                    fontSize: "0.85rem"
+                                  }}
+                                  min="0"
+                                />
+                                <button
+                                  onClick={() => openRoutingSearch(index)}
+                                  style={{
+                                    background: "#f59e0b",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "4px",
+                                    padding: "6px 8px",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    minWidth: "32px"
+                                  }}
+                                  title="Routing Operasyonu Seç"
+                                >
+                                  <i className="fas fa-cogs" style={{ fontSize: "0.7rem" }}></i>
+                                </button>
+                              </>
                             ) : (
-                              line.OperationNo
+                              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                {line.OperationNo}
+                                {line.RoutingOperationNo && (
+                                  <span style={{ 
+                                    backgroundColor: "rgba(245, 158, 11, 0.2)", 
+                                    color: "#f59e0b",
+                                    padding: "2px 6px",
+                                    borderRadius: "3px",
+                                    fontSize: "0.7rem"
+                                  }}>
+                                    (R)
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
                           <div>
@@ -2824,7 +3545,7 @@ const handleSaveHead = useCallback(async () => {
                       {/* Butonlar */}
                       <div style={{
                         display: "grid",
-                        gridTemplateColumns: "80px 80px 80px 2fr 120px 80px",
+                        gridTemplateColumns: "80px 80px 100px 2fr 120px 80px",
                         padding: "12px 15px",
                         backgroundColor: "#1e293b",
                         borderTop: "2px solid #475569",

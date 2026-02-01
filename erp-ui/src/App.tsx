@@ -8,6 +8,7 @@ import FinanceHome from "./modules/fin/FinanceHome";
 import Lobby from "./modules/lobby/Lobby";
 
 // Alt kırılım sayfaları
+import CompanySite from "./modules/enterp/CompanySite";
 import SalesOrders from "./modules/sales/SalesOrders";
 import SalesQuotes from "./modules/sales/SalesQuotes";
 import CustomerPage from "./modules/sales/customer/CustomerPage";
@@ -60,6 +61,7 @@ export default function App() {
 
         {/* Alt kırılımlar */}
         <Route path="/enterp/company" element={<CompanyPage />} />
+        <Route path="/enterp/companysite" element={<CompanySite />} />
         <Route path="/sales/customer" element={<CustomerPage />} />
         <Route path="/sales/customerorderlines" element={<SaleOrderLinesPage />} />
         <Route path="/sales/orders" element={<SalesOrders />} />

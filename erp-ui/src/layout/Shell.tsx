@@ -16,7 +16,8 @@ const Shell = () => {
       icon: "shopping-cart",
       path: "/enterp/company",
       children: [
-        { name: "Şirket", path: "/enterp/company" } 
+        { name: "Şirket", path: "/enterp/company" } ,
+        { name: "Tesis", path: "/enterp/companysite" } 
       ]
     },
     {

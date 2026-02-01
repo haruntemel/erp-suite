@@ -20,9 +20,14 @@ namespace Erp.Api.Data
         public DbSet<InventoryPart> InventoryParts => Set<InventoryPart>();
         public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
         public DbSet<CustomerOrderLine> CustomerOrderLines => Set<CustomerOrderLine>();
-// Yeni eklenen DbSets - Ürün Ağacı
+        // Yeni eklenen DbSets - Ürün Ağacı
         public DbSet<ProdStructureTab> ProdStructureTabs => Set<ProdStructureTab>();
         public DbSet<ProdStructureHeadTab> ProdStructureHeadTabs => Set<ProdStructureHeadTab>();
+         public DbSet<CompanySite> CompanySites { get; set; }
+        // BUNU EKLEYİN: WorkCenter DbSet
+        public DbSet<WorkCenter> WorkCenters => Set<WorkCenter>();
+        public DbSet<RoutingHeadTab> RoutingHeadTabs => Set<RoutingHeadTab>();
+public DbSet<RoutingOperationTab> RoutingOperationTabs=> Set<RoutingOperationTab>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Product mapping
@@ -297,12 +302,14 @@ namespace Erp.Api.Data
                     .HasColumnName("sales_type_db")
                     .HasMaxLength(80);
 
-                    e.Property(x => x.TypeCode)
+                e.Property(x => x.TypeCode)
                     .HasColumnName("type_code")
                     .HasMaxLength(50);
-                 e.Property(x => x.TypeCodeDb)
+                 
+                e.Property(x => x.TypeCodeDb)
                     .HasColumnName("type_code_db")
                     .HasMaxLength(50);
+                
                 // Depolama gereksinimleri
                 e.Property(x => x.StorageWidthRequirement)
                     .HasColumnName("storage_width_requirement")
@@ -479,9 +486,9 @@ namespace Erp.Api.Data
                     .HasColumnName("note_text")
                     .HasMaxLength(4000);
                     
-                e.Property(x => x.Rowstate) // Objstate yerine Rowstate
-        .HasColumnName("rowstate") // DB'de hala objstate olarak kalacak
-        .HasMaxLength(4000);
+                e.Property(x => x.Rowstate)
+                    .HasColumnName("rowstate")
+                    .HasMaxLength(4000);
 
                 // Sistem alanları
                 e.Property(x => x.CreatedBy)
@@ -736,9 +743,9 @@ namespace Erp.Api.Data
                     .HasColumnName("free_of_charge")
                     .HasMaxLength(4000);
                     
-                e.Property(x => x.Rowstate) // State yerine Rowstate
-        .HasColumnName("rowstate") // DB'de hala state olarak kalacak
-        .HasMaxLength(4000);
+                e.Property(x => x.Rowstate)
+                    .HasColumnName("rowstate")
+                    .HasMaxLength(4000);
 
                 // Sistem alanları
                 e.Property(x => x.Rowversion)
@@ -752,10 +759,11 @@ namespace Erp.Api.Data
                     .HasMaxLength(200)
                     .IsRequired();
             });
-             // ProdStructureHeadTab mapping
+            
+            // ProdStructureHeadTab mapping
             modelBuilder.Entity<ProdStructureHeadTab>(e =>
             {
-                e.ToTable("prod_structure_head_tab"); // Tablo adını uygun şekilde ayarlayın
+                e.ToTable("prod_structure_head_tab");
                 e.HasKey(x => new { x.Contract, x.PartNo, x.EngChgLevel, x.BomTypeDb });
 
                 // Anahtar alanlar
@@ -830,7 +838,7 @@ namespace Erp.Api.Data
             // ProdStructureTab mapping
             modelBuilder.Entity<ProdStructureTab>(e =>
             {
-                e.ToTable("prod_structure_tab"); // Tablo adını uygun şekilde ayarlayın
+                e.ToTable("prod_structure_tab");
                 e.HasKey(x => new { 
                     x.Contract, 
                     x.PartNo, 
@@ -931,6 +939,271 @@ namespace Erp.Api.Data
                     .HasColumnName("rowkey")
                     .HasMaxLength(200)
                     .IsRequired();
+            });
+
+            // BUNU EKLEYİN: WorkCenter mapping
+            modelBuilder.Entity<WorkCenter>(e =>
+            {
+                e.ToTable("work_center_tab"); // Tablo adını uygun şekilde ayarlayın
+                e.HasKey(x => new { x.Company, x.Contract, x.WorkCenterNo });
+
+                // Anahtar alanlar
+                e.Property(x => x.Company)
+                    .HasColumnName("company")
+                    .HasMaxLength(80)
+                    .IsRequired();
+                    
+                e.Property(x => x.Contract)
+                    .HasColumnName("contract")
+                    .HasMaxLength(20)
+                    .IsRequired();
+                    
+                e.Property(x => x.WorkCenterNo)
+                    .HasColumnName("work_center_no")
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                // Diğer alanlar
+                e.Property(x => x.Description)
+                    .HasColumnName("description")
+                    .HasMaxLength(800);
+                    
+                e.Property(x => x.WorkCenterCode)
+                    .HasColumnName("work_center_code")
+                    .HasMaxLength(50);
+                    
+                e.Property(x => x.ProductionLine)
+                    .HasColumnName("production_line")
+                    .HasMaxLength(50);
+                    
+                e.Property(x => x.DepartmentNo)
+                    .HasColumnName("department_no")
+                    .HasMaxLength(50);
+                    
+                e.Property(x => x.NoteText)
+                    .HasColumnName("note_text")
+                    .HasMaxLength(4000);
+                    
+                e.Property(x => x.CreateDate)
+                    .HasColumnName("create_date")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+                    
+                e.Property(x => x.Rowversion)
+                    .HasColumnName("rowversion")
+                    .HasColumnType("date")
+                    .HasConversion(
+                        v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                        v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+                    
+                e.Property(x => x.Rowkey)
+                    .HasColumnName("rowkey")
+                    .HasMaxLength(200)
+                    .IsRequired();
+                    
+                e.Property(x => x.Rowstate)
+                    .HasColumnName("rowstate")
+                    .HasMaxLength(50);
+            });
+             modelBuilder.Entity<CompanySite>(e =>
+    {
+        e.ToTable("company_site_tab");
+        e.HasKey(x => new { x.Company, x.Contract });
+
+        // Anahtar alanlar
+        e.Property(x => x.Company)
+            .HasColumnName("company")
+            .HasMaxLength(80)
+            .IsRequired();
+            
+        e.Property(x => x.Contract)
+            .HasColumnName("contract")
+            .HasMaxLength(20)
+            .IsRequired();
+
+        // Diğer alanlar
+        e.Property(x => x.Description)
+            .HasColumnName("description")
+            .HasMaxLength(140);
+            
+        e.Property(x => x.Country)
+            .HasColumnName("country")
+            .HasMaxLength(80);
+            
+        e.Property(x => x.CreateDate)
+            .HasColumnName("create_date")
+            .HasColumnType("date")
+            .HasConversion(
+                v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+            
+        e.Property(x => x.Rowversion)
+            .HasColumnName("rowversion")
+            .HasColumnType("date")
+            .HasConversion(
+                v => v.HasValue ? v.Value.ToDateTime(TimeOnly.MinValue) : (DateTime?)null,
+                v => v.HasValue ? DateOnly.FromDateTime(v.Value) : (DateOnly?)null);
+            
+        e.Property(x => x.Rowkey)
+            .HasColumnName("rowkey")
+            .HasMaxLength(200)
+            .IsRequired();
+            
+        e.Property(x => x.Rowstate)
+            .HasColumnName("rowstate")
+            .HasMaxLength(80);
+    });
+
+
+   
+    modelBuilder.Entity<RoutingHeadTab>(e =>
+            {
+                e.ToTable("routing_head_tab");
+                e.HasKey(e => new { e.Company, e.Contract, e.PartNo, e.RoutingRevision, e.BomType });
+
+                e.Property(e => e.Company)
+                    .HasColumnName("company")
+                    .HasMaxLength(80)
+                    .IsRequired();
+                    
+                e.Property(e => e.Contract)
+                    .HasColumnName("contract")
+                    .HasMaxLength(20)
+                    .IsRequired();
+                    
+                e.Property(e => e.PartNo)
+                    .HasColumnName("part_no")
+                    .HasMaxLength(100)
+                    .IsRequired();
+                    
+                e.Property(e => e.RoutingRevision)
+                    .HasColumnName("routing_revision")
+                    .HasMaxLength(16)
+                    .IsRequired();
+                    
+                e.Property(e => e.BomType)
+                    .HasColumnName("bom_type")
+                    .HasMaxLength(80)
+                    .IsRequired();
+
+                e.Property(e => e.PhaseInDate)
+                    .HasColumnName("phase_in_date")
+                    .HasColumnType("date");
+                    
+                e.Property(e => e.PhaseOutDate)
+                    .HasColumnName("phase_out_date")
+                    .HasColumnType("date");
+                    
+                e.Property(e => e.NoteId)
+                    .HasColumnName("note_id")
+                    .HasColumnType("numeric(22,0)");
+                    
+                e.Property(e => e.NoteText)
+                    .HasColumnName("note_text")
+                    .HasMaxLength(4000);
+                    
+                e.Property(e => e.CreateDate)
+                    .HasColumnName("create_date")
+                    .HasColumnType("date");
+                    
+                e.Property(e => e.Rowversion)
+                    .HasColumnName("rowversion");
+                    
+                e.Property(e => e.Rowkey)
+                    .HasColumnName("rowkey")
+                    .HasMaxLength(200);
+            });
+
+
+
+            // Configure RoutingOperation
+            modelBuilder.Entity<RoutingOperationTab>(entity =>
+            {
+                entity.ToTable("routing_operation_tab");
+                entity.HasKey(e => new { e.Company, e.Contract, e.PartNo, e.BomType, e.RoutingRevision, e.OperationNo });
+
+                // Composite foreign key
+                entity.HasIndex(e => new { e.Company, e.Contract, e.PartNo, e.RoutingRevision, e.BomType })
+                    .HasDatabaseName("IX_RoutingOperation_RoutingHead");
+
+                entity.Property(e => e.Company)
+                    .HasColumnName("company")
+                    .HasMaxLength(80)
+                    .IsRequired();
+                    
+                entity.Property(e => e.Contract)
+                    .HasColumnName("contract")
+                    .HasMaxLength(20)
+                    .IsRequired();
+                    
+                entity.Property(e => e.PartNo)
+                    .HasColumnName("part_no")
+                    .HasMaxLength(100)
+                    .IsRequired();
+                    
+                entity.Property(e => e.RoutingRevision)
+                    .HasColumnName("routing_revision")
+                    .HasMaxLength(16)
+                    .IsRequired();
+                    
+                entity.Property(e => e.BomType)
+                    .HasColumnName("bom_type")
+                    .HasMaxLength(80)
+                    .IsRequired();
+                    
+                entity.Property(e => e.OperationNo)
+                    .HasColumnName("operation_no")
+                    .HasColumnType("numeric(22,0)")
+                    .IsRequired();
+
+                entity.Property(e => e.OperationDescription)
+                    .HasColumnName("operation_description")
+                    .HasMaxLength(140);
+                    
+                entity.Property(e => e.WorkCenterNo)
+                    .HasColumnName("work_center_no")
+                    .HasMaxLength(20);
+                    
+                entity.Property(e => e.MachRunFactor)
+                    .HasColumnName("mach_run_factor")
+                    .HasColumnType("numeric(22,0)");
+                    
+                entity.Property(e => e.MachSetupTime)
+                    .HasColumnName("mach_setup_time")
+                    .HasColumnType("numeric(22,0)");
+                    
+                entity.Property(e => e.LaborClassNo)
+                    .HasColumnName("labor_class_no")
+                    .HasMaxLength(40);
+                    
+                entity.Property(e => e.SetupLaborClassNo)
+                    .HasColumnName("setup_labor_class_no")
+                    .HasMaxLength(40);
+                    
+                entity.Property(e => e.CrewSize)
+                    .HasColumnName("crew_size")
+                    .HasColumnType("numeric(22,0)");
+                    
+                entity.Property(e => e.SetupCrewSize)
+                    .HasColumnName("setup_crew_size")
+                    .HasColumnType("numeric(22,0)");
+                    
+                entity.Property(e => e.RunTimeCode)
+                    .HasColumnName("run_time_code")
+                    .HasMaxLength(80);
+                    
+                entity.Property(e => e.NoteText)
+                    .HasColumnName("note_text")
+                    .HasMaxLength(4000);
+                    
+                entity.Property(e => e.Rowversion)
+                    .HasColumnName("rowversion");
+                    
+                entity.Property(e => e.Rowkey)
+                    .HasColumnName("rowkey")
+                    .HasMaxLength(200);
             });
         }
     }

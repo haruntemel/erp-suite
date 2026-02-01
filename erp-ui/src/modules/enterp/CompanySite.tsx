@@ -1,16 +1,12 @@
 import { useState, useEffect } from "react";
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
 
-// WorkCenter interface'i
-interface WorkCenter {
+// CompanySite interface'i
+interface CompanySite {
   company: string;
   contract: string;
-  workCenterNo: string;
   description?: string;
-  workCenterCode?: string;
-  productionLine?: string;
-  departmentNo?: string;
-  noteText?: string;
+  country?: string;
   createDate?: Date;
   rowversion?: Date;
   rowkey: string;
@@ -33,19 +29,7 @@ interface Company {
   rowkey: string;
 }
 
-// CompanySite interface'i (contract listesi için)
-interface CompanySite {
-  company: string;
-  contract: string;
-  description?: string;
-  country?: string;
-  createDate?: Date;
-  rowversion?: Date;
-  rowkey: string;
-  rowstate?: string;
-}
-
-const tabs = ["İş Merkezleri"];
+const tabs = ["Şirket Tesisleri"];
 
 // Düzenleme formu için style constants
 const inputStyle = {
@@ -65,70 +49,43 @@ const labelStyle = {
   display: "block"
 } as const;
 
-export default function WorkCenterPage() {
-  const [activeTab] = useState("İş Merkezleri");
+export default function CompanySitePage() {
+  const [activeTab] = useState("Şirket Tesisleri");
   const [isSearchPanelVisible, setIsSearchPanelVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
-  const [isLoadingContracts, setIsLoadingContracts] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
-  // WorkCenter'lar için state'ler
-  const [workCenters, setWorkCenters] = useState<WorkCenter[]>([]);
-  const [selectedWorkCenter, setSelectedWorkCenter] = useState<WorkCenter | null>(null);
-  const [editingWorkCenter, setEditingWorkCenter] = useState<WorkCenter | null>(null);
+  // CompanySite'lar için state'ler
+  const [companySites, setCompanySites] = useState<CompanySite[]>([]);
+  const [selectedCompanySite, setSelectedCompanySite] = useState<CompanySite | null>(null);
+  const [editingCompanySite, setEditingCompanySite] = useState<CompanySite | null>(null);
   
   // Companies için state
   const [companies, setCompanies] = useState<Company[]>([]);
   
-  // CompanySites (contracts) için state
-  const [companySites, setCompanySites] = useState<CompanySite[]>([]);
-  const [filteredContracts, setFilteredContracts] = useState<CompanySite[]>([]);
-  
   // Yeni kayıt için state
-  const [newWorkCenter, setNewWorkCenter] = useState<Partial<WorkCenter>>({
+  const [newCompanySite, setNewCompanySite] = useState<Partial<CompanySite>>({
     company: "",
     contract: "",
-    workCenterNo: "",
     description: "",
-    workCenterCode: "",
-    productionLine: "",
-    departmentNo: "",
-    noteText: "",
+    country: "TR", // Varsayılan olarak Türkiye
     rowstate: "Active"
   });
 
   // API URL'leri
   const API_BASE_URL = "http://localhost:5217/api";
-  const WORK_CENTER_API = `${API_BASE_URL}/workcenter`;
-  const COMPANY_API = `${API_BASE_URL}/company`;
   const COMPANY_SITE_API = `${API_BASE_URL}/companysites`;
+  const COMPANY_API = `${API_BASE_URL}/company`;
 
-  // WorkCenter'ları, Companies'ı ve CompanySites'ı yükle
+  // CompanySite'ları ve Companies'ı yükle
   useEffect(() => {
-    fetchWorkCenters();
-    fetchCompanies();
     fetchCompanySites();
+    fetchCompanies();
   }, []);
-
-  // Company değiştiğinde contract'ları filtrele
-  useEffect(() => {
-    if (newWorkCenter.company) {
-      const contracts = companySites.filter(site => site.company === newWorkCenter.company);
-      setFilteredContracts(contracts);
-      
-      // Eğer seçili contract artık bu şirkete ait değilse, contract'ı temizle
-      if (newWorkCenter.contract && !contracts.some(c => c.contract === newWorkCenter.contract)) {
-        setNewWorkCenter(prev => ({ ...prev, contract: "" }));
-      }
-    } else {
-      setFilteredContracts([]);
-      setNewWorkCenter(prev => ({ ...prev, contract: "" }));
-    }
-  }, [newWorkCenter.company, companySites]);
 
   const fetchCompanies = async () => {
     setIsLoadingCompanies(true);
@@ -156,36 +113,11 @@ export default function WorkCenterPage() {
   };
 
   const fetchCompanySites = async () => {
-    setIsLoadingContracts(true);
+    setIsLoading(true);
     try {
       console.log("Fetching company sites from:", COMPANY_SITE_API);
       
       const response = await fetch(COMPANY_SITE_API);
-      console.log("Company sites response status:", response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Company sites API Error response:", errorText);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-      
-      const data: CompanySite[] = await response.json();
-      console.log("Received company sites:", data);
-      setCompanySites(data);
-    } catch (error: any) {
-      console.error("Company sites yüklenirken hata:", error);
-      console.error("Error details:", error.message);
-    } finally {
-      setIsLoadingContracts(false);
-    }
-  };
-
-  const fetchWorkCenters = async () => {
-    setIsLoading(true);
-    try {
-      console.log("Fetching work centers from:", WORK_CENTER_API);
-      
-      const response = await fetch(WORK_CENTER_API);
       console.log("Response status:", response.status);
       
       if (!response.ok) {
@@ -194,29 +126,29 @@ export default function WorkCenterPage() {
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       
-      const data: WorkCenter[] = await response.json();
+      const data: CompanySite[] = await response.json();
       console.log("Received data:", data);
-      setWorkCenters(data);
+      setCompanySites(data);
     } catch (error: any) {
-      console.error("WorkCenter'lar yüklenirken hata:", error);
+      console.error("CompanySite'lar yüklenirken hata:", error);
       console.error("Error details:", error.message);
-      alert(`WorkCenter'lar yüklenirken hata: ${error.message}`);
+      alert(`CompanySite'lar yüklenirken hata: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchWorkCenterDetail = async (company: string, contract: string, workCenterNo: string) => {
+  const fetchCompanySiteDetail = async (company: string, contract: string) => {
     try {
-      const response = await fetch(`${WORK_CENTER_API}/${company}/${contract}/${workCenterNo}`);
+      const response = await fetch(`${COMPANY_SITE_API}/${company}/${contract}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data: WorkCenter = await response.json();
+      const data: CompanySite = await response.json();
       return data;
     } catch (error) {
-      console.error("WorkCenter detayı yüklenirken hata:", error);
-      alert("WorkCenter detayı yüklenirken hata oluştu!");
+      console.error("CompanySite detayı yüklenirken hata:", error);
+      alert("CompanySite detayı yüklenirken hata oluştu!");
       return null;
     }
   };
@@ -227,40 +159,29 @@ export default function WorkCenterPage() {
     return company ? `${company.name} (${company.companyId})` : companyId;
   };
 
-  // Seçilen contract'ın açıklamasını getir
-  const getContractDescription = (company: string, contract: string) => {
-    const site = companySites.find(s => s.company === company && s.contract === contract);
-    return site?.description || contract;
-  };
-
   // Filtrelenmiş liste
-  const filteredWorkCenters = workCenters.filter(wc => 
-    wc.workCenterNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (wc.description && wc.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (wc.workCenterCode && wc.workCenterCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (wc.productionLine && wc.productionLine.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (wc.departmentNo && wc.departmentNo.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredCompanySites = companySites.filter(cs => 
+    cs.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    cs.contract.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (cs.description && cs.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (cs.country && cs.country.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleToggleSearchPanel = () => {
     setIsSearchPanelVisible(!isSearchPanelVisible);
   };
 
-  const handleWorkCenterSelect = async (workCenter: WorkCenter) => {
+  const handleCompanySiteSelect = async (companySite: CompanySite) => {
     setIsLoading(true);
     try {
-      const detail = await fetchWorkCenterDetail(
-        workCenter.company, 
-        workCenter.contract, 
-        workCenter.workCenterNo
-      );
+      const detail = await fetchCompanySiteDetail(companySite.company, companySite.contract);
       
       if (detail) {
-        setSelectedWorkCenter(detail);
-        setEditingWorkCenter({...detail});
+        setSelectedCompanySite(detail);
+        setEditingCompanySite({...detail});
       }
     } catch (error) {
-      console.error("WorkCenter seçilirken hata:", error);
+      console.error("CompanySite seçilirken hata:", error);
     } finally {
       setIsLoading(false);
     }
@@ -274,31 +195,28 @@ export default function WorkCenterPage() {
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    if (selectedWorkCenter) {
-      setEditingWorkCenter({...selectedWorkCenter});
+    if (selectedCompanySite) {
+      setEditingCompanySite({...selectedCompanySite});
     }
   };
 
   const handleSave = async () => {
-    if (!editingWorkCenter) return;
+    if (!editingCompanySite) return;
     
     setIsSaving(true);
     try {
       const response = await fetch(
-        `${WORK_CENTER_API}/${editingWorkCenter.company}/${editingWorkCenter.contract}/${editingWorkCenter.workCenterNo}`, 
+        `${COMPANY_SITE_API}/${editingCompanySite.company}/${editingCompanySite.contract}`, 
         {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            description: editingWorkCenter.description,
-            workCenterCode: editingWorkCenter.workCenterCode,
-            productionLine: editingWorkCenter.productionLine,
-            departmentNo: editingWorkCenter.departmentNo,
-            noteText: editingWorkCenter.noteText,
-            rowstate: editingWorkCenter.rowstate,
-            rowversion: editingWorkCenter.rowversion || new Date().toISOString().split('T')[0]
+            description: editingCompanySite.description,
+            country: editingCompanySite.country,
+            rowstate: editingCompanySite.rowstate,
+            rowversion: editingCompanySite.rowversion || new Date().toISOString().split('T')[0]
           })
         }
       );
@@ -307,38 +225,37 @@ export default function WorkCenterPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const updatedWorkCenter: WorkCenter = await response.json();
+      const updatedCompanySite: CompanySite = await response.json();
       
       // Local state'i güncelle
-      const updatedWorkCenters = workCenters.map(wc => 
-        wc.company === updatedWorkCenter.company && 
-        wc.contract === updatedWorkCenter.contract && 
-        wc.workCenterNo === updatedWorkCenter.workCenterNo 
-          ? updatedWorkCenter 
-          : wc
+      const updatedCompanySites = companySites.map(cs => 
+        cs.company === updatedCompanySite.company && 
+        cs.contract === updatedCompanySite.contract 
+          ? updatedCompanySite 
+          : cs
       );
       
-      setWorkCenters(updatedWorkCenters);
-      setSelectedWorkCenter(updatedWorkCenter);
-      setEditingWorkCenter(updatedWorkCenter);
+      setCompanySites(updatedCompanySites);
+      setSelectedCompanySite(updatedCompanySite);
+      setEditingCompanySite(updatedCompanySite);
       setIsEditing(false);
       
-      alert("WorkCenter başarıyla güncellendi!");
+      alert("CompanySite başarıyla güncellendi!");
     } catch (error) {
-      console.error("WorkCenter güncellenirken hata:", error);
-      alert("WorkCenter güncellenirken hata oluştu!");
+      console.error("CompanySite güncellenirken hata:", error);
+      alert("CompanySite güncellenirken hata oluştu!");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!selectedWorkCenter) return;
+    if (!selectedCompanySite) return;
     
-    if (window.confirm(`${selectedWorkCenter.workCenterNo} kodlu work center'ı silmek istediğinize emin misiniz?`)) {
+    if (window.confirm(`${selectedCompanySite.company} - ${selectedCompanySite.contract} tesisini silmek istediğinize emin misiniz?`)) {
       try {
         const response = await fetch(
-          `${WORK_CENTER_API}/${selectedWorkCenter.company}/${selectedWorkCenter.contract}/${selectedWorkCenter.workCenterNo}`, 
+          `${COMPANY_SITE_API}/${selectedCompanySite.company}/${selectedCompanySite.contract}`, 
           {
             method: 'DELETE'
           }
@@ -349,20 +266,19 @@ export default function WorkCenterPage() {
         }
 
         // Local state'i güncelle
-        const updatedWorkCenters = workCenters.filter(wc => 
-          !(wc.company === selectedWorkCenter.company && 
-            wc.contract === selectedWorkCenter.contract && 
-            wc.workCenterNo === selectedWorkCenter.workCenterNo)
+        const updatedCompanySites = companySites.filter(cs => 
+          !(cs.company === selectedCompanySite.company && 
+            cs.contract === selectedCompanySite.contract)
         );
         
-        setWorkCenters(updatedWorkCenters);
-        setSelectedWorkCenter(null);
-        setEditingWorkCenter(null);
+        setCompanySites(updatedCompanySites);
+        setSelectedCompanySite(null);
+        setEditingCompanySite(null);
         
-        alert("WorkCenter başarıyla silindi!");
+        alert("CompanySite başarıyla silindi!");
       } catch (error) {
-        console.error("WorkCenter silinirken hata:", error);
-        alert("WorkCenter silinirken hata oluştu!");
+        console.error("CompanySite silinirken hata:", error);
+        alert("CompanySite silinirken hata oluştu!");
       }
     }
   };
@@ -370,33 +286,32 @@ export default function WorkCenterPage() {
   const handleCreateNew = () => {
     setIsCreatingNew(true);
     setIsEditing(true);
-    setNewWorkCenter({
+    setNewCompanySite({
       company: "",
       contract: "",
-      workCenterNo: "",
       description: "",
-      workCenterCode: "",
-      productionLine: "",
-      departmentNo: "",
-      noteText: "",
+      country: "TR",
       rowstate: "Active"
     });
   };
 
   const handleSaveNew = async () => {
-    if (!newWorkCenter.company || !newWorkCenter.contract || !newWorkCenter.workCenterNo) {
-      alert("Şirket, Kontrat ve Work Center No alanları zorunludur!");
+    if (!newCompanySite.company || !newCompanySite.contract) {
+      alert("Şirket ve Kontrat alanları zorunludur!");
       return;
     }
     
     setIsSaving(true);
     try {
-      const response = await fetch(WORK_CENTER_API, {
+      const response = await fetch(COMPANY_SITE_API, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newWorkCenter)
+        body: JSON.stringify({
+          ...newCompanySite,
+          rowkey: `${newCompanySite.company}_${newCompanySite.contract}_${Date.now()}` // Otomatik rowkey oluştur
+        })
       });
 
       if (!response.ok) {
@@ -404,19 +319,19 @@ export default function WorkCenterPage() {
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      const createdWorkCenter: WorkCenter = await response.json();
+      const createdCompanySite: CompanySite = await response.json();
       
       // Local state'i güncelle
-      setWorkCenters([...workCenters, createdWorkCenter]);
-      setSelectedWorkCenter(createdWorkCenter);
-      setEditingWorkCenter(createdWorkCenter);
+      setCompanySites([...companySites, createdCompanySite]);
+      setSelectedCompanySite(createdCompanySite);
+      setEditingCompanySite(createdCompanySite);
       setIsCreatingNew(false);
       setIsEditing(false);
       
-      alert("Yeni WorkCenter başarıyla oluşturuldu!");
+      alert("Yeni CompanySite başarıyla oluşturuldu!");
     } catch (error: any) {
-      console.error("WorkCenter oluşturulurken hata:", error);
-      alert(`WorkCenter oluşturulurken hata: ${error.message}`);
+      console.error("CompanySite oluşturulurken hata:", error);
+      alert(`CompanySite oluşturulurken hata: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -427,26 +342,20 @@ export default function WorkCenterPage() {
     setIsEditing(false);
   };
 
-  const handleWorkCenterChange = (field: keyof WorkCenter, value: any) => {
-    if (editingWorkCenter) {
-      setEditingWorkCenter({
-        ...editingWorkCenter,
+  const handleCompanySiteChange = (field: keyof CompanySite, value: any) => {
+    if (editingCompanySite) {
+      setEditingCompanySite({
+        ...editingCompanySite,
         [field]: value
       });
     }
   };
 
-  const handleNewWorkCenterChange = (field: keyof WorkCenter, value: any) => {
-    setNewWorkCenter({
-      ...newWorkCenter,
+  const handleNewCompanySiteChange = (field: keyof CompanySite, value: any) => {
+    setNewCompanySite({
+      ...newCompanySite,
       [field]: value
     });
-  };
-
-  // Grid'de company adını göstermek için
-  const getGridCompanyName = (companyId: string) => {
-    const company = companies.find(c => c.companyId === companyId);
-    return company ? company.companyId : companyId;
   };
 
   return (
@@ -487,7 +396,7 @@ export default function WorkCenterPage() {
               gap: "8px"
             }}>
               <i className="fas fa-search"></i>
-              İş Merkezi Arama
+              Tesis Arama
             </h3>
             
             <div style={{ position: "relative" }}>
@@ -495,7 +404,7 @@ export default function WorkCenterPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Kod, ad veya açıklama ile ara..."
+                placeholder="Şirket, kontrat veya açıklama ile ara..."
                 style={{
                   width: "100%",
                   padding: "10px 12px 10px 40px",
@@ -532,17 +441,16 @@ export default function WorkCenterPage() {
                 <i className="fas fa-spinner fa-spin" style={{ fontSize: "1.5rem", marginBottom: "10px", display: "block" }}></i>
                 <p>Yükleniyor...</p>
               </div>
-            ) : filteredWorkCenters.length > 0 ? (
-              filteredWorkCenters.map((item) => (
+            ) : filteredCompanySites.length > 0 ? (
+              filteredCompanySites.map((item) => (
                 <div
-                  key={`${item.company}-${item.contract}-${item.workCenterNo}`}
-                  onClick={() => handleWorkCenterSelect(item)}
+                  key={`${item.company}-${item.contract}`}
+                  onClick={() => handleCompanySiteSelect(item)}
                   style={{
                     padding: "12px 15px",
                     marginBottom: "8px",
-                    backgroundColor: selectedWorkCenter?.company === item.company && 
-                                   selectedWorkCenter?.contract === item.contract && 
-                                   selectedWorkCenter?.workCenterNo === item.workCenterNo
+                    backgroundColor: selectedCompanySite?.company === item.company && 
+                                   selectedCompanySite?.contract === item.contract
                       ? "rgba(56, 189, 248, 0.2)"
                       : "rgba(30, 41, 59, 0.5)",
                     border: "1px solid #334155",
@@ -551,16 +459,14 @@ export default function WorkCenterPage() {
                     transition: "all 0.2s"
                   }}
                   onMouseOver={(e) => {
-                    if (!(selectedWorkCenter?.company === item.company && 
-                          selectedWorkCenter?.contract === item.contract && 
-                          selectedWorkCenter?.workCenterNo === item.workCenterNo)) {
+                    if (!(selectedCompanySite?.company === item.company && 
+                          selectedCompanySite?.contract === item.contract)) {
                       e.currentTarget.style.backgroundColor = "rgba(56, 189, 248, 0.1)";
                     }
                   }}
                   onMouseOut={(e) => {
-                    if (!(selectedWorkCenter?.company === item.company && 
-                          selectedWorkCenter?.contract === item.contract && 
-                          selectedWorkCenter?.workCenterNo === item.workCenterNo)) {
+                    if (!(selectedCompanySite?.company === item.company && 
+                          selectedCompanySite?.contract === item.contract)) {
                       e.currentTarget.style.backgroundColor = "rgba(30, 41, 59, 0.5)";
                     }
                   }}
@@ -573,7 +479,7 @@ export default function WorkCenterPage() {
                     <div style={{
                       width: "32px",
                       height: "32px",
-                      backgroundColor: "rgba(16, 185, 129, 0.2)",
+                      backgroundColor: "rgba(139, 92, 246, 0.2)",
                       borderRadius: "6px",
                       display: "flex",
                       alignItems: "center",
@@ -581,9 +487,9 @@ export default function WorkCenterPage() {
                       marginRight: "10px",
                       flexShrink: 0
                     }}>
-                      <i className="fas fa-industry"
+                      <i className="fas fa-building"
                         style={{
-                          color: "#10b981",
+                          color: "#8b5cf6",
                           fontSize: "0.9rem"
                         }}
                       ></i>
@@ -595,13 +501,13 @@ export default function WorkCenterPage() {
                         fontSize: "0.9rem",
                         marginBottom: "2px"
                       }}>
-                        {item.workCenterNo}
+                        {getCompanyName(item.company)}
                       </div>
                       <div style={{
                         color: "#94a3b8",
                         fontSize: "0.8rem"
                       }}>
-                        {item.description || item.workCenterCode || 'No Description'}
+                        {item.contract} - {item.description || 'No Description'}
                       </div>
                     </div>
                   </div>
@@ -619,7 +525,7 @@ export default function WorkCenterPage() {
                       borderRadius: "4px",
                       fontSize: "0.7rem"
                     }}>
-                      {getGridCompanyName(item.company)}
+                      {item.company}
                     </span>
                     <span style={{
                       backgroundColor: "rgba(245, 158, 11, 0.2)",
@@ -630,6 +536,17 @@ export default function WorkCenterPage() {
                     }}>
                       {item.contract}
                     </span>
+                    {item.country && (
+                      <span style={{
+                        backgroundColor: "rgba(16, 185, 129, 0.2)",
+                        color: "#10b981",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        fontSize: "0.7rem"
+                      }}>
+                        <i className="fas fa-flag"></i> {item.country}
+                      </span>
+                    )}
                     {item.rowstate && (
                       <span style={{
                         backgroundColor: item.rowstate === 'Active' 
@@ -741,8 +658,8 @@ export default function WorkCenterPage() {
             alignItems: "center",
             gap: "10px"
           }}>
-            <i className="fas fa-industry"></i>
-            İş Merkezi Yönetimi
+            <i className="fas fa-building"></i>
+            Şirket Tesis Yönetimi
           </div>
           
           {/* Tablar */}
@@ -756,7 +673,7 @@ export default function WorkCenterPage() {
                 onClick={() => {
                   setIsCreatingNew(false);
                   setIsEditing(false);
-                  setSelectedWorkCenter(null);
+                  setSelectedCompanySite(null);
                   setSearchQuery("");
                 }}
                 style={{
@@ -773,7 +690,7 @@ export default function WorkCenterPage() {
                   gap: "8px"
                 }}
               >
-                <i className="fas fa-industry"></i>
+                <i className="fas fa-building"></i>
                 <span>{tab}</span>
               </button>
             ))}
@@ -830,9 +747,8 @@ export default function WorkCenterPage() {
               
               <button
                 onClick={() => {
-                  fetchWorkCenters();
-                  fetchCompanies();
                   fetchCompanySites();
+                  fetchCompanies();
                 }}
                 style={{
                   background: "#3b82f6",
@@ -861,7 +777,7 @@ export default function WorkCenterPage() {
               }}>
                 <i className="fas fa-database"></i>
                 <span>
-                  {isLoading ? "Yükleniyor..." : `Toplam ${workCenters.length} iş merkezi`}
+                  {isLoading ? "Yükleniyor..." : `Toplam ${companySites.length} tesis`}
                 </span>
               </div>
             </div>
@@ -883,7 +799,7 @@ export default function WorkCenterPage() {
                 }}
               >
                 <i className="fas fa-plus"></i>
-                <span>Yeni İş Merkezi</span>
+                <span>Yeni Tesis</span>
               </button>
             </div>
           </div>
@@ -901,7 +817,7 @@ export default function WorkCenterPage() {
             {/* Grid Header */}
             <div style={{
               display: "grid",
-              gridTemplateColumns: "100px 120px 1fr 150px 120px 120px 120px 80px",
+              gridTemplateColumns: "120px 120px 1fr 120px 80px 180px",
               backgroundColor: "#334155",
               padding: "12px 15px",
               borderBottom: "1px solid #475569",
@@ -914,12 +830,10 @@ export default function WorkCenterPage() {
             }}>
               <div>Şirket</div>
               <div>Kontrat</div>
-              <div>Work Center No</div>
               <div>Açıklama</div>
-              <div>Work Center Code</div>
-              <div>Üretim Hattı</div>
-              <div>Departman</div>
+              <div>Ülke</div>
               <div>Durum</div>
+              <div>Oluşturma Tarihi</div>
             </div>
 
             {/* Grid Body */}
@@ -937,19 +851,18 @@ export default function WorkCenterPage() {
                   <i className="fas fa-spinner fa-spin" style={{ fontSize: "2rem", marginBottom: "10px" }}></i>
                   <p>Yükleniyor...</p>
                 </div>
-              ) : filteredWorkCenters.length > 0 ? (
-                filteredWorkCenters.map((item, index) => {
-                  const isSelected = selectedWorkCenter?.company === item.company && 
-                                   selectedWorkCenter?.contract === item.contract && 
-                                   selectedWorkCenter?.workCenterNo === item.workCenterNo;
+              ) : filteredCompanySites.length > 0 ? (
+                filteredCompanySites.map((item, index) => {
+                  const isSelected = selectedCompanySite?.company === item.company && 
+                                   selectedCompanySite?.contract === item.contract;
                   
                   return (
                     <div
-                      key={`${item.company}-${item.contract}-${item.workCenterNo}`}
-                      onClick={() => handleWorkCenterSelect(item)}
+                      key={`${item.company}-${item.contract}`}
+                      onClick={() => handleCompanySiteSelect(item)}
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "100px 120px 1fr 150px 120px 120px 120px 80px",
+                        gridTemplateColumns: "120px 120px 1fr 120px 80px 180px",
                         padding: "10px 15px",
                         borderBottom: "1px solid #334155",
                         fontSize: "0.85rem",
@@ -977,16 +890,9 @@ export default function WorkCenterPage() {
                           marginRight: "8px", 
                           color: "#8b5cf6" 
                         }}></i>
-                        {getGridCompanyName(item.company)}
+                        {getCompanyName(item.company)}
                       </div>
                       <div style={{ color: "#f59e0b", fontWeight: "500" }}>{item.contract}</div>
-                      <div>
-                        <i className="fas fa-industry" style={{ 
-                          marginRight: "8px", 
-                          color: "#10b981" 
-                        }}></i>
-                        {item.workCenterNo}
-                      </div>
                       <div style={{ 
                         color: "#94a3b8",
                         whiteSpace: "nowrap",
@@ -995,9 +901,15 @@ export default function WorkCenterPage() {
                       }}>
                         {item.description || '-'}
                       </div>
-                      <div style={{ color: "#94a3b8" }}>{item.workCenterCode || '-'}</div>
-                      <div style={{ color: "#94a3b8" }}>{item.productionLine || '-'}</div>
-                      <div style={{ color: "#94a3b8" }}>{item.departmentNo || '-'}</div>
+                      <div style={{ 
+                        color: "#10b981",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px"
+                      }}>
+                        <i className="fas fa-flag"></i>
+                        {item.country || '-'}
+                      </div>
                       <div style={{ textAlign: "center" }}>
                         <span style={{
                           backgroundColor: item.rowstate === 'Active' 
@@ -1011,6 +923,11 @@ export default function WorkCenterPage() {
                           {item.rowstate || '-'}
                         </span>
                       </div>
+                      <div style={{ color: "#94a3b8", fontSize: "0.8rem" }}>
+                        {item.createDate ? 
+                          new Date(item.createDate).toLocaleDateString('tr-TR') : 
+                          '-'}
+                      </div>
                     </div>
                   );
                 })
@@ -1020,15 +937,15 @@ export default function WorkCenterPage() {
                   textAlign: "center",
                   color: "#94a3b8"
                 }}>
-                  <i className="fas fa-industry" style={{ fontSize: "2rem", marginBottom: "10px" }}></i>
-                  <p>Hiç work center bulunamadı.</p>
+                  <i className="fas fa-building" style={{ fontSize: "2rem", marginBottom: "10px" }}></i>
+                  <p>Hiç tesis bulunamadı.</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Seçili Kayıt Detayları */}
-          {(selectedWorkCenter || isCreatingNew) && (
+          {(selectedCompanySite || isCreatingNew) && (
             <div style={{
               background: "#1e293b",
               borderRadius: "12px",
@@ -1053,8 +970,8 @@ export default function WorkCenterPage() {
                 }}>
                   <i className="fas fa-info-circle" style={{ color: "#38bdf8" }}></i>
                   {isCreatingNew 
-                    ? "Yeni İş Merkezi Oluştur" 
-                    : "İş Merkezi Detayları"}
+                    ? "Yeni Tesis Oluştur" 
+                    : "Tesis Detayları"}
                   {isEditing && " (Düzenleme Modu)"}
                 </h3>
                 
@@ -1167,7 +1084,7 @@ export default function WorkCenterPage() {
                 marginBottom: "20px"
               }}>
                 {isCreatingNew ? (
-                  // Yeni İş Merkezi Formu
+                  // Yeni Tesis Formu
                   <>
                     <div>
                       <label style={labelStyle}>Şirket *</label>
@@ -1184,8 +1101,8 @@ export default function WorkCenterPage() {
                         </div>
                       ) : (
                         <select
-                          value={newWorkCenter.company || ''}
-                          onChange={(e) => handleNewWorkCenterChange('company', e.target.value)}
+                          value={newCompanySite.company || ''}
+                          onChange={(e) => handleNewCompanySiteChange('company', e.target.value)}
                           style={inputStyle}
                         >
                           <option value="">Şirket seçin...</option>
@@ -1199,90 +1116,45 @@ export default function WorkCenterPage() {
                     </div>
                     <div>
                       <label style={labelStyle}>Kontrat *</label>
-                      {isLoadingContracts || isLoadingCompanies ? (
-                        <div style={{
-                          padding: "10px 12px",
-                          backgroundColor: "rgba(30, 41, 59, 0.8)",
-                          border: "1px solid #475569",
-                          borderRadius: "6px",
-                          color: "#94a3b8",
-                          fontSize: "0.9rem"
-                        }}>
-                          {!newWorkCenter.company ? "Önce şirket seçin" : "Contract'lar yükleniyor..."}
-                        </div>
-                      ) : (
-                        <select
-                          value={newWorkCenter.contract || ''}
-                          onChange={(e) => handleNewWorkCenterChange('contract', e.target.value)}
-                          style={inputStyle}
-                          disabled={!newWorkCenter.company}
-                        >
-                          <option value="">
-                            {newWorkCenter.company ? "Contract seçin..." : "Önce şirket seçin"}
-                          </option>
-                          {filteredContracts.map(site => (
-                            <option key={`${site.company}-${site.contract}`} value={site.contract}>
-                              {site.contract} - {site.description || 'No Description'}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Work Center No *</label>
                       <input
                         type="text"
-                        value={newWorkCenter.workCenterNo || ''}
-                        onChange={(e) => handleNewWorkCenterChange('workCenterNo', e.target.value)}
+                        value={newCompanySite.contract || ''}
+                        onChange={(e) => handleNewCompanySiteChange('contract', e.target.value)}
                         style={inputStyle}
-                        placeholder="Örn: WC001"
+                        placeholder="Örn: SITE1"
                       />
                     </div>
-                    <div>
+                    <div style={{ gridColumn: "1 / -1" }}>
                       <label style={labelStyle}>Açıklama</label>
                       <input
                         type="text"
-                        value={newWorkCenter.description || ''}
-                        onChange={(e) => handleNewWorkCenterChange('description', e.target.value)}
+                        value={newCompanySite.description || ''}
+                        onChange={(e) => handleNewCompanySiteChange('description', e.target.value)}
                         style={inputStyle}
-                        placeholder="Açıklama girin"
+                        placeholder="Tesis açıklaması"
                       />
                     </div>
                     <div>
-                      <label style={labelStyle}>Work Center Code</label>
-                      <input
-                        type="text"
-                        value={newWorkCenter.workCenterCode || ''}
-                        onChange={(e) => handleNewWorkCenterChange('workCenterCode', e.target.value)}
+                      <label style={labelStyle}>Ülke</label>
+                      <select
+                        value={newCompanySite.country || 'TR'}
+                        onChange={(e) => handleNewCompanySiteChange('country', e.target.value)}
                         style={inputStyle}
-                        placeholder="Work center kodu"
-                      />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Üretim Hattı</label>
-                      <input
-                        type="text"
-                        value={newWorkCenter.productionLine || ''}
-                        onChange={(e) => handleNewWorkCenterChange('productionLine', e.target.value)}
-                        style={inputStyle}
-                        placeholder="Üretim hattı kodu"
-                      />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Departman No</label>
-                      <input
-                        type="text"
-                        value={newWorkCenter.departmentNo || ''}
-                        onChange={(e) => handleNewWorkCenterChange('departmentNo', e.target.value)}
-                        style={inputStyle}
-                        placeholder="Departman numarası"
-                      />
+                      >
+                        <option value="TR">Türkiye</option>
+                        <option value="US">Amerika</option>
+                        <option value="DE">Almanya</option>
+                        <option value="FR">Fransa</option>
+                        <option value="UK">İngiltere</option>
+                        <option value="CN">Çin</option>
+                        <option value="JP">Japonya</option>
+                      </select>
                     </div>
                     <div>
                       <label style={labelStyle}>Durum</label>
                       <select
-                        value={newWorkCenter.rowstate || 'Active'}
-                        onChange={(e) => handleNewWorkCenterChange('rowstate', e.target.value)}
+                        value={newCompanySite.rowstate || 'Active'}
+                        onChange={(e) => handleNewCompanySiteChange('rowstate', e.target.value)}
                         style={inputStyle}
                       >
                         <option value="Active">Aktif</option>
@@ -1290,22 +1162,9 @@ export default function WorkCenterPage() {
                         <option value="Deleted">Silindi</option>
                       </select>
                     </div>
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <label style={labelStyle}>Not</label>
-                      <textarea
-                        value={newWorkCenter.noteText || ''}
-                        onChange={(e) => handleNewWorkCenterChange('noteText', e.target.value)}
-                        rows={3}
-                        style={{
-                          ...inputStyle,
-                          resize: "vertical"
-                        }}
-                        placeholder="Not metni..."
-                      />
-                    </div>
                   </>
-                ) : editingWorkCenter ? (
-                  // İş Merkezi Düzenleme Formu
+                ) : editingCompanySite ? (
+                  // Tesis Düzenleme Formu
                   <>
                     <div>
                       <label style={labelStyle}>Şirket</label>
@@ -1318,7 +1177,7 @@ export default function WorkCenterPage() {
                           color: "#94a3b8",
                           fontSize: "0.9rem"
                         }}>
-                          {getCompanyName(editingWorkCenter.company)}
+                          {getCompanyName(editingCompanySite.company)}
                           <div style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "2px" }}>
                             (Düzenlenemez)
                           </div>
@@ -1331,7 +1190,7 @@ export default function WorkCenterPage() {
                           color: "#f1f5f9",
                           fontWeight: "500"
                         }}>
-                          {getCompanyName(editingWorkCenter.company)}
+                          {getCompanyName(editingCompanySite.company)}
                         </div>
                       )}
                     </div>
@@ -1346,7 +1205,7 @@ export default function WorkCenterPage() {
                           color: "#94a3b8",
                           fontSize: "0.9rem"
                         }}>
-                          {editingWorkCenter.contract} - {getContractDescription(editingWorkCenter.company, editingWorkCenter.contract)}
+                          {editingCompanySite.contract}
                           <div style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "2px" }}>
                             (Düzenlenemez)
                           </div>
@@ -1359,34 +1218,7 @@ export default function WorkCenterPage() {
                           color: "#f1f5f9",
                           fontWeight: "500"
                         }}>
-                          {editingWorkCenter.contract}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Work Center No</label>
-                      {isEditing ? (
-                        <div style={{ 
-                          padding: "10px 12px",
-                          backgroundColor: "rgba(30, 41, 59, 0.8)",
-                          border: "1px solid #475569",
-                          borderRadius: "6px",
-                          color: "#94a3b8",
-                          fontSize: "0.9rem"
-                        }}>
-                          {editingWorkCenter.workCenterNo}
-                          <div style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "2px" }}>
-                            (Düzenlenemez)
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ 
-                          padding: "8px", 
-                          backgroundColor: "rgba(30, 41, 59, 0.5)",
-                          borderRadius: "4px",
-                          color: "#f1f5f9"
-                        }}>
-                          {editingWorkCenter.workCenterNo}
+                          {editingCompanySite.contract}
                         </div>
                       )}
                     </div>
@@ -1395,8 +1227,8 @@ export default function WorkCenterPage() {
                       {isEditing ? (
                         <input
                           type="text"
-                          value={editingWorkCenter.description || ''}
-                          onChange={(e) => handleWorkCenterChange('description', e.target.value)}
+                          value={editingCompanySite.description || ''}
+                          onChange={(e) => handleCompanySiteChange('description', e.target.value)}
                           style={inputStyle}
                         />
                       ) : (
@@ -1406,67 +1238,38 @@ export default function WorkCenterPage() {
                           borderRadius: "4px",
                           color: "#f1f5f9"
                         }}>
-                          {editingWorkCenter.description || '-'}
+                          {editingCompanySite.description || '-'}
                         </div>
                       )}
                     </div>
                     <div>
-                      <label style={labelStyle}>Work Center Code</label>
+                      <label style={labelStyle}>Ülke</label>
                       {isEditing ? (
-                        <input
-                          type="text"
-                          value={editingWorkCenter.workCenterCode || ''}
-                          onChange={(e) => handleWorkCenterChange('workCenterCode', e.target.value)}
+                        <select
+                          value={editingCompanySite.country || 'TR'}
+                          onChange={(e) => handleCompanySiteChange('country', e.target.value)}
                           style={inputStyle}
-                        />
+                        >
+                          <option value="TR">Türkiye</option>
+                          <option value="US">Amerika</option>
+                          <option value="DE">Almanya</option>
+                          <option value="FR">Fransa</option>
+                          <option value="UK">İngiltere</option>
+                          <option value="CN">Çin</option>
+                          <option value="JP">Japonya</option>
+                        </select>
                       ) : (
                         <div style={{ 
                           padding: "8px", 
-                          backgroundColor: "rgba(30, 41, 59, 0.5)",
+                          backgroundColor: "rgba(16, 185, 129, 0.2)",
                           borderRadius: "4px",
-                          color: "#f1f5f9"
+                          color: "#10b981",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "5px"
                         }}>
-                          {editingWorkCenter.workCenterCode || '-'}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Üretim Hattı</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editingWorkCenter.productionLine || ''}
-                          onChange={(e) => handleWorkCenterChange('productionLine', e.target.value)}
-                          style={inputStyle}
-                        />
-                      ) : (
-                        <div style={{ 
-                          padding: "8px", 
-                          backgroundColor: "rgba(30, 41, 59, 0.5)",
-                          borderRadius: "4px",
-                          color: "#f1f5f9"
-                        }}>
-                          {editingWorkCenter.productionLine || '-'}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Departman No</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editingWorkCenter.departmentNo || ''}
-                          onChange={(e) => handleWorkCenterChange('departmentNo', e.target.value)}
-                          style={inputStyle}
-                        />
-                      ) : (
-                        <div style={{ 
-                          padding: "8px", 
-                          backgroundColor: "rgba(30, 41, 59, 0.5)",
-                          borderRadius: "4px",
-                          color: "#f1f5f9"
-                        }}>
-                          {editingWorkCenter.departmentNo || '-'}
+                          <i className="fas fa-flag"></i>
+                          {editingCompanySite.country || '-'}
                         </div>
                       )}
                     </div>
@@ -1474,8 +1277,8 @@ export default function WorkCenterPage() {
                       <label style={labelStyle}>Durum</label>
                       {isEditing ? (
                         <select
-                          value={editingWorkCenter.rowstate || 'Active'}
-                          onChange={(e) => handleWorkCenterChange('rowstate', e.target.value)}
+                          value={editingCompanySite.rowstate || 'Active'}
+                          onChange={(e) => handleCompanySiteChange('rowstate', e.target.value)}
                           style={inputStyle}
                         >
                           <option value="Active">Aktif</option>
@@ -1485,15 +1288,15 @@ export default function WorkCenterPage() {
                       ) : (
                         <div style={{ 
                           padding: "8px", 
-                          backgroundColor: editingWorkCenter.rowstate === 'Active' 
+                          backgroundColor: editingCompanySite.rowstate === 'Active' 
                             ? "rgba(16, 185, 129, 0.2)" 
                             : "rgba(239, 68, 68, 0.2)",
                           borderRadius: "4px",
-                          color: editingWorkCenter.rowstate === 'Active' ? "#10b981" : "#ef4444",
+                          color: editingCompanySite.rowstate === 'Active' ? "#10b981" : "#ef4444",
                           textAlign: "center",
                           fontWeight: "500"
                         }}>
-                          {editingWorkCenter.rowstate || '-'}
+                          {editingCompanySite.rowstate || '-'}
                         </div>
                       )}
                     </div>
@@ -1506,12 +1309,26 @@ export default function WorkCenterPage() {
                         color: "#94a3b8",
                         fontSize: "0.85rem"
                       }}>
-                        {editingWorkCenter.createDate ? 
-                          new Date(editingWorkCenter.createDate).toLocaleDateString('tr-TR') : 
+                        {editingCompanySite.createDate ? 
+                          new Date(editingCompanySite.createDate).toLocaleDateString('tr-TR') : 
                           'Belirtilmemiş'}
                       </div>
                     </div>
                     <div>
+                      <label style={labelStyle}>Row Version</label>
+                      <div style={{ 
+                        padding: "8px", 
+                        backgroundColor: "rgba(30, 41, 59, 0.5)",
+                        borderRadius: "4px",
+                        color: "#94a3b8",
+                        fontSize: "0.85rem"
+                      }}>
+                        {editingCompanySite.rowversion ? 
+                          new Date(editingCompanySite.rowversion).toLocaleDateString('tr-TR') : 
+                          '-'}
+                      </div>
+                    </div>
+                    <div style={{ gridColumn: "1 / -1" }}>
                       <label style={labelStyle}>Row Key</label>
                       <div style={{ 
                         padding: "8px", 
@@ -1519,34 +1336,11 @@ export default function WorkCenterPage() {
                         borderRadius: "4px",
                         color: "#94a3b8",
                         fontSize: "0.8rem",
-                        wordBreak: "break-all"
+                        wordBreak: "break-all",
+                        fontFamily: "monospace"
                       }}>
-                        {editingWorkCenter.rowkey || '-'}
+                        {editingCompanySite.rowkey || '-'}
                       </div>
-                    </div>
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <label style={labelStyle}>Not</label>
-                      {isEditing ? (
-                        <textarea
-                          value={editingWorkCenter.noteText || ''}
-                          onChange={(e) => handleWorkCenterChange('noteText', e.target.value)}
-                          rows={3}
-                          style={{
-                            ...inputStyle,
-                            resize: "vertical"
-                          }}
-                        />
-                      ) : (
-                        <div style={{ 
-                          padding: "8px", 
-                          backgroundColor: "rgba(30, 41, 59, 0.5)",
-                          borderRadius: "4px",
-                          color: "#f1f5f9",
-                          minHeight: "50px"
-                        }}>
-                          {editingWorkCenter.noteText || '-'}
-                        </div>
-                      )}
                     </div>
                   </>
                 ) : null}
@@ -1555,7 +1349,7 @@ export default function WorkCenterPage() {
           )}
 
           {/* Hiç kayıt seçilmediyse mesaj */}
-          {!selectedWorkCenter && !isCreatingNew && (
+          {!selectedCompanySite && !isCreatingNew && (
             <div style={{
               textAlign: "center",
               padding: "40px 20px",
@@ -1566,7 +1360,7 @@ export default function WorkCenterPage() {
               marginTop: "15px"
             }}>
               <i className="fas fa-mouse-pointer" style={{ fontSize: "2rem", marginBottom: "10px" }}></i>
-              <p>Detayları görmek için tablodan bir kayıt seçin veya yeni kayıt oluşturun.</p>
+              <p>Detayları görmek için tablodan bir tesis seçin veya yeni tesis oluşturun.</p>
             </div>
           )}
         </div>
