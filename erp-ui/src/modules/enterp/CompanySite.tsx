@@ -77,7 +77,7 @@ export default function CompanySitePage() {
   });
 
   // API URL'leri
-  const API_BASE_URL = "http://localhost:5217/api";
+  const API_BASE_URL = "/api";
   const COMPANY_SITE_API = `${API_BASE_URL}/companysites`;
   const COMPANY_API = `${API_BASE_URL}/company`;
 

@@ -280,7 +280,7 @@ export default function ProdStructurePage() {
   const fetchProdStructureHeads = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5217/api/prodstructurehead');
+      const response = await fetch('/api/prodstructurehead');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -318,7 +318,7 @@ export default function ProdStructurePage() {
   const fetchStructureLines = async (contract: string, partNo: string, engChgLevel: string, bomTypeDb: string) => {
     try {
       const response = await fetch(
-        `http://localhost:5217/api/prodstructure/head/${contract}/${partNo}/${engChgLevel}/${bomTypeDb}/000`
+        `/api/prodstructure/head/${contract}/${partNo}/${engChgLevel}/${bomTypeDb}/000`
       );
       
       if (response.ok) {
@@ -362,7 +362,7 @@ export default function ProdStructurePage() {
   const searchInventoryParts = async (searchTerm: string = "") => {
     try {
       setInventoryLoading(true);
-      let url = "http://localhost:5217/api/inventorypart/search";
+      let url = "/api/inventorypart/search";
       
       if (searchTerm) {
         url += `?partNo=${encodeURIComponent(searchTerm)}&description=${encodeURIComponent(searchTerm)}`;
@@ -399,7 +399,7 @@ const searchRoutingOperations = async () => {
     const company = await getCompanyByContract(selectedHead.Contract);
     console.log(`Routing search için company: ${company}, contract: ${selectedHead.Contract}`);
     
-    const url = `http://localhost:5217/api/RoutingOperationTab/ByHead/${company}/${selectedHead.Contract}/${selectedHead.PartNo}/${selectedHead.EngChgLevel}/${selectedHead.BomTypeDb}`;
+    const url = `/api/RoutingOperationTab/ByHead/${company}/${selectedHead.Contract}/${selectedHead.PartNo}/${selectedHead.EngChgLevel}/${selectedHead.BomTypeDb}`;
     
     console.log("Routing operation search URL:", url);
     
@@ -429,7 +429,7 @@ const searchRoutingOperations = async () => {
 const getCompanyByContract = async (contract: string): Promise<string> => {
   try {
     // Önce tüm company'leri getir
-    const response = await fetch('http://localhost:5217/api/CompanySites');
+    const response = await fetch('/api/CompanySites');
     
     if (response.ok) {
       const companySites: CompanySite[] = await response.json();
@@ -660,7 +660,7 @@ const getCompanyByContract = async (contract: string): Promise<string> => {
       };
 
       const response = await fetch(
-        `http://localhost:5217/api/prodstructurehead/${selectedHead.Contract}/${selectedHead.PartNo}/${selectedHead.EngChgLevel}/${selectedHead.BomTypeDb}`,
+        `/api/prodstructurehead/${selectedHead.Contract}/${selectedHead.PartNo}/${selectedHead.EngChgLevel}/${selectedHead.BomTypeDb}`,
         {
           method: 'PUT',
           headers: {
@@ -717,7 +717,7 @@ const getCompanyByContract = async (contract: string): Promise<string> => {
               };
 
               const createResponse = await fetch(
-                `http://localhost:5217/api/prodstructure/head/${updatedHead.Contract}/${updatedHead.PartNo}/${updatedHead.EngChgLevel}/${updatedHead.BomTypeDb}/000`,
+                `/api/prodstructure/head/${updatedHead.Contract}/${updatedHead.PartNo}/${updatedHead.EngChgLevel}/${updatedHead.BomTypeDb}/000`,
                 {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -753,7 +753,7 @@ const getCompanyByContract = async (contract: string): Promise<string> => {
               routingOperationNo: line.RoutingOperationNo || null
             };
 
-            const putUrl = `http://localhost:5217/api/prodstructure/${updatedHead.Contract}/${updatedHead.PartNo}/${updatedHead.EngChgLevel}/${updatedHead.BomTypeDb}/${alternativeNo}/${line.LineItemNo}/${line.LineSequence}/${line.OperationNo}`;
+            const putUrl = `/api/prodstructure/${updatedHead.Contract}/${updatedHead.PartNo}/${updatedHead.EngChgLevel}/${updatedHead.BomTypeDb}/${alternativeNo}/${line.LineItemNo}/${line.LineSequence}/${line.OperationNo}`;
             console.log("PUT URL:", putUrl);
 
             const updateResponse = await fetch(
@@ -816,7 +816,7 @@ const getCompanyByContract = async (contract: string): Promise<string> => {
 
     try {
       const response = await fetch(
-        `http://localhost:5217/api/prodstructurehead/${selectedHead.Contract}/${selectedHead.PartNo}/${selectedHead.EngChgLevel}/${selectedHead.BomTypeDb}`,
+        `/api/prodstructurehead/${selectedHead.Contract}/${selectedHead.PartNo}/${selectedHead.EngChgLevel}/${selectedHead.BomTypeDb}`,
         {
           method: 'DELETE',
         }
@@ -893,7 +893,7 @@ const getCompanyByContract = async (contract: string): Promise<string> => {
     try {
       console.log("Yeni Ürün Ağacı başlığı kaydediliyor:", newHeadData);
 
-      const headResponse = await fetch('http://localhost:5217/api/prodstructurehead', {
+      const headResponse = await fetch('/api/prodstructurehead', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -927,7 +927,7 @@ const getCompanyByContract = async (contract: string): Promise<string> => {
           console.log(`Satır ${index + 1} kaydediliyor:`, lineData);
 
           const lineResponse = await fetch(
-            `http://localhost:5217/api/prodstructure/head/${savedHead.contract}/${savedHead.partNo}/${savedHead.engChgLevel}/${savedHead.bomTypeDb}/000`,
+            `/api/prodstructure/head/${savedHead.contract}/${savedHead.partNo}/${savedHead.engChgLevel}/${savedHead.bomTypeDb}/000`,
             {
               method: 'POST',
               headers: {
@@ -1969,7 +1969,7 @@ const getCompanyByContract = async (contract: string): Promise<string> => {
           const company = await getCompanyByContract(newHeadData.contract);
           console.log(`Yeni head için routing search: company=${company}, contract=${newHeadData.contract}, part=${newHeadData.partNo}`);
           
-          const url = `http://localhost:5217/api/RoutingOperationTab/ByHead/${company}/${newHeadData.contract}/${newHeadData.partNo}/${newHeadData.engChgLevel}/${newHeadData.bomTypeDb}`;
+          const url = `/api/RoutingOperationTab/ByHead/${company}/${newHeadData.contract}/${newHeadData.partNo}/${newHeadData.engChgLevel}/${newHeadData.bomTypeDb}`;
           console.log("Routing search URL:", url);
           
           const response = await fetch(url);

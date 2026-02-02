@@ -241,7 +241,7 @@ export default function RoutingPage() {
 
 
   // API URL'leri
-  const API_BASE_URL = "http://localhost:5217/api";
+  const API_BASE_URL = "/api";
   const ROUTING_HEAD_API = `${API_BASE_URL}/routingheadtab`;
   const ROUTING_OPERATION_API = `${API_BASE_URL}/routingoperationtab`;
   const COMPANY_API = `${API_BASE_URL}/company`;

@@ -36,7 +36,7 @@ export default function Dashboard() {
       console.log('Token from localStorage:', token); // DEBUG
       
       // 1. YÖNTEM: Doğrudan fetch ile
-      const response = await fetch('http://localhost:5217/api/dashboard/stats', {
+      const response = await fetch('/api/dashboard/stats', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

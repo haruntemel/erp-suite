@@ -373,7 +373,7 @@ export default function CompanyPage() {
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5217/api/company');
+      const response = await fetch('/api/company');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -439,7 +439,7 @@ export default function CompanyPage() {
         const companyToDelete = companies.find(c => c.id === id);
         if (!companyToDelete) return;
 
-        const response = await fetch(`http://localhost:5217/api/company/${companyToDelete.company}`, {
+        const response = await fetch(`/api/company/${companyToDelete.company}`, {
           method: 'DELETE',
         });
 
@@ -491,7 +491,7 @@ export default function CompanyPage() {
         rowversion: selectedCompany.rowversion || 1
       };
 
-      const response = await fetch(`http://localhost:5217/api/company/${editingCompanyData.company}`, {
+      const response = await fetch(`/api/company/${editingCompanyData.company}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -543,7 +543,7 @@ export default function CompanyPage() {
         rowversion: selectedCompany.rowversion || 1
       };
 
-      const response = await fetch(`http://localhost:5217/api/company/${editingCompanyData.company}`, {
+      const response = await fetch(`/api/company/${editingCompanyData.company}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

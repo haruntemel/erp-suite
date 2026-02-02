@@ -604,7 +604,7 @@ export default function InventoryPartPage() {
     try {
       setLoading(true);
       // API endpoint'i
-      const response = await fetch('http://localhost:5217/api/inventorypart');
+      const response = await fetch('/api/inventorypart');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -722,7 +722,7 @@ export default function InventoryPartPage() {
         createDate: newPartFormData.createDate
       };
 
-      const response = await fetch('http://localhost:5217/api/inventorypart', {
+      const response = await fetch('/api/inventorypart', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -869,7 +869,7 @@ export default function InventoryPartPage() {
     
     if (window.confirm("Bu malzemeyi silmek istediğinize emin misiniz?")) {
       try {
-        const response = await fetch(`http://localhost:5217/api/inventorypart/${selectedPart.contract}/${selectedPart.partNo}`, {
+        const response = await fetch(`/api/inventorypart/${selectedPart.contract}/${selectedPart.partNo}`, {
           method: 'DELETE',
         });
 
@@ -922,7 +922,7 @@ const handleSavePartFields = async () => {
       rowversion: selectedPart.rowversion
     };
 
-    const response = await fetch(`http://localhost:5217/api/inventorypart/${editingPartData.contract}/${editingPartData.partNo}`, {
+    const response = await fetch(`/api/inventorypart/${editingPartData.contract}/${editingPartData.partNo}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -985,7 +985,7 @@ const handleSaveAll = async () => {
       rowversion: selectedPart.rowversion
     };
 
-    const response = await fetch(`http://localhost:5217/api/inventorypart/${selectedPart.contract}/${selectedPart.partNo}`, {
+    const response = await fetch(`/api/inventorypart/${selectedPart.contract}/${selectedPart.partNo}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

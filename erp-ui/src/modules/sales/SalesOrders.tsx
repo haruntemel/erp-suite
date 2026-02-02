@@ -350,7 +350,7 @@ export default function CustomerOrderPage() {
   const fetchCustomerOrders = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5217/api/customerorder');
+      const response = await fetch('/api/customerorder');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -497,9 +497,9 @@ export default function CustomerOrderPage() {
         
         // Birden fazla endpoint deneyeceğiz
         const endpoints = [
-          `http://localhost:5217/api/customerorder/${orderInfo.company}/${orderInfo.orderNo}/${orderInfo.contract}`,
-          `http://localhost:5217/api/customerorder/get?company=${encodeURIComponent(orderInfo.company)}&orderNo=${encodeURIComponent(orderInfo.orderNo)}&contract=${encodeURIComponent(orderInfo.contract)}`,
-          `http://localhost:5217/api/salesorder/${orderInfo.company}/${orderInfo.orderNo}/${orderInfo.contract}`
+          `/api/customerorder/${orderInfo.company}/${orderInfo.orderNo}/${orderInfo.contract}`,
+          `/api/customerorder/get?company=${encodeURIComponent(orderInfo.company)}&orderNo=${encodeURIComponent(orderInfo.orderNo)}&contract=${encodeURIComponent(orderInfo.contract)}`,
+          `/api/salesorder/${orderInfo.company}/${orderInfo.orderNo}/${orderInfo.contract}`
         ];
         
         let orderData = null;
@@ -584,7 +584,7 @@ export default function CustomerOrderPage() {
 
   const fetchOrderLines = async (company: string, orderNo: string, contract: string) => {
     try {
-      const response = await fetch(`http://localhost:5217/api/customerorderline/order/${company}/${orderNo}/${contract}`);
+      const response = await fetch(`/api/customerorderline/order/${company}/${orderNo}/${contract}`);
       
       if (response.ok) {
         const apiData: CustomerOrderLineApiResponse[] = await response.json();
@@ -637,7 +637,7 @@ export default function CustomerOrderPage() {
   const searchInventoryParts = async (searchTerm: string = "") => {
     try {
       setInventoryLoading(true);
-      let url = "http://localhost:5217/api/inventorypart/search";
+      let url = "/api/inventorypart/search";
       
       if (searchTerm) {
         // Search by part number or description
@@ -857,7 +857,7 @@ export default function CustomerOrderPage() {
       console.log("Ana sipariş DTO:", updateDto);
 
       const response = await fetch(
-        `http://localhost:5217/api/customerorder/${selectedOrder.Company}/${selectedOrder.OrderNo}/${selectedOrder.Contract}`,
+        `/api/customerorder/${selectedOrder.Company}/${selectedOrder.OrderNo}/${selectedOrder.Contract}`,
         {
           method: 'PUT',
           headers: {
@@ -933,10 +933,10 @@ export default function CustomerOrderPage() {
               };
 
               console.log("Yeni satır POST verisi:", lineData);
-              console.log("POST URL:", `http://localhost:5217/api/customerorderline/order/${updatedOrder.Company}/${updatedOrder.OrderNo}/${updatedOrder.Contract}`);
+              console.log("POST URL:", `/api/customerorderline/order/${updatedOrder.Company}/${updatedOrder.OrderNo}/${updatedOrder.Contract}`);
 
               const createResponse = await fetch(
-                `http://localhost:5217/api/customerorderline/order/${updatedOrder.Company}/${updatedOrder.OrderNo}/${updatedOrder.Contract}`,
+                `/api/customerorderline/order/${updatedOrder.Company}/${updatedOrder.OrderNo}/${updatedOrder.Contract}`,
                 {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -974,10 +974,10 @@ export default function CustomerOrderPage() {
             };
 
             console.log("Satır PUT verisi:", lineUpdateDto);
-            console.log("PUT URL:", `http://localhost:5217/api/customerorderline/${updatedOrder.Company}/${updatedOrder.OrderNo}/${updatedOrder.Contract}/${lineNoStr}/${relNoStr}`);
+            console.log("PUT URL:", `/api/customerorderline/${updatedOrder.Company}/${updatedOrder.OrderNo}/${updatedOrder.Contract}/${lineNoStr}/${relNoStr}`);
 
             const updateResponse = await fetch(
-              `http://localhost:5217/api/customerorderline/${updatedOrder.Company}/${updatedOrder.OrderNo}/${updatedOrder.Contract}/${lineNoStr}/${relNoStr}`,
+              `/api/customerorderline/${updatedOrder.Company}/${updatedOrder.OrderNo}/${updatedOrder.Contract}/${lineNoStr}/${relNoStr}`,
               {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -1044,7 +1044,7 @@ export default function CustomerOrderPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5217/api/customerorder/${selectedOrder.Company}/${selectedOrder.OrderNo}/${selectedOrder.Contract}`, {
+      const response = await fetch(`/api/customerorder/${selectedOrder.Company}/${selectedOrder.OrderNo}/${selectedOrder.Contract}`, {
         method: 'DELETE',
       });
 
@@ -1146,7 +1146,7 @@ export default function CustomerOrderPage() {
       console.log("Ana sipariş kaydediliyor:", newOrderData);
 
       // 1. Önce ana siparişi kaydet - camelCase gönder
-      const orderResponse = await fetch('http://localhost:5217/api/customerorder', {
+      const orderResponse = await fetch('/api/customerorder', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1183,7 +1183,7 @@ export default function CustomerOrderPage() {
 
           console.log(`Satır ${index + 1} kaydediliyor:`, lineData);
 
-          const lineResponse = await fetch('http://localhost:5217/api/customerorderline/order/' + 
+          const lineResponse = await fetch('/api/customerorderline/order/' + 
             `${savedOrder.company}/${savedOrder.orderNo}/${savedOrder.contract}`, {
             method: 'POST',
             headers: {
