@@ -28,6 +28,9 @@ namespace Erp.Api.Data
         public DbSet<WorkCenter> WorkCenters => Set<WorkCenter>();
         public DbSet<RoutingHeadTab> RoutingHeadTabs => Set<RoutingHeadTab>();
 public DbSet<RoutingOperationTab> RoutingOperationTabs=> Set<RoutingOperationTab>();
+
+public DbSet<ShopOrder> ShopOrders { get; set; }
+   public DbSet<ShopMaterialAlloc> ShopMaterialAllocs { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Product mapping

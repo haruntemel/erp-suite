@@ -230,7 +230,7 @@ export default function ProdStructurePage() {
 
   // Yeni ürün ağacı başlığı formu state'leri
   const [newHeadData, setNewHeadData] = useState<ProdStructureHeadCreateDto>({
-    contract: "001",
+    contract: "01",
     partNo: "",
     engChgLevel: "A",
     bomTypeDb: "STANDARD",
@@ -328,9 +328,9 @@ export default function ProdStructurePage() {
           id: index + 1,
           Contract: apiLine.contract || "",
           PartNo: apiLine.partNo || "",
-          EngChgLevel: apiLine.engChgLevel || "A",
-          BomTypeDb: apiLine.bomTypeDb || "STANDARD",
-          AlternativeNo: apiLine.alternativeNo || "000",
+          EngChgLevel:  "A",
+          BomTypeDb:  "STANDARD",
+          AlternativeNo: "000",
           LineItemNo: apiLine.lineItemNo || 0,
           LineSequence: apiLine.lineSequence || 0,
           OperationNo: apiLine.operationNo || 0,
@@ -441,16 +441,16 @@ const getCompanyByContract = async (contract: string): Promise<string> => {
         console.log(`Contract ${contract} için company bulundu: ${foundCompany.company}`);
         return foundCompany.company;
       } else {
-        console.warn(`Contract ${contract} için company bulunamadı, varsayılan olarak "001" kullanılıyor.`);
-        return "001"; // Varsayılan değer
+        console.warn(`Contract ${contract} için company bulunamadı, varsayılan olarak "01" kullanılıyor.`);
+        return "01"; // Varsayılan değer
       }
     } else {
       console.warn("CompanySites API hatası, varsayılan company kullanılıyor.");
-      return "001"; // Varsayılan değer
+      return "01"; // Varsayılan değer
     }
   } catch (err) {
     console.error("Company bilgisi alınırken hata:", err);
-    return "001"; // Varsayılan değer
+    return "01"; // Varsayılan değer
   }
 };
 
@@ -998,7 +998,7 @@ const getCompanyByContract = async (contract: string): Promise<string> => {
 
   const resetForm = useCallback(() => {
     setNewHeadData({
-      contract: "001",
+      contract: "01",
       partNo: "",
       engChgLevel: "A",
       bomTypeDb: "STANDARD",
@@ -1354,7 +1354,7 @@ const getCompanyByContract = async (contract: string): Promise<string> => {
     color: "#f1f5f9"
   }}>
     <div style={{ display: "flex", gap: "15px", flexWrap: "wrap" }}>
-      <span><strong>Şirket:</strong> {selectedHead ? "Yükleniyor..." : "001"}</span>
+      <span><strong>Şirket:</strong> {selectedHead ? "Yükleniyor..." : "01"}</span>
       <span><strong>Parça:</strong> {selectedHead?.PartNo || newHeadData?.partNo}</span>
       <span><strong>Kontrat:</strong> {selectedHead?.Contract || newHeadData?.contract}</span>
       <span><strong>Revizyon:</strong> {selectedHead?.EngChgLevel || newHeadData?.engChgLevel}</span>
@@ -1729,7 +1729,7 @@ const getCompanyByContract = async (contract: string): Promise<string> => {
                   value={newHeadData.contract}
                   onChange={(e) => handleNewHeadDataChange('contract', e.target.value)}
                   style={inputStyle}
-                  placeholder="Örn: 001"
+                  placeholder="Örn: 01"
                 />
               </div>
               <div>

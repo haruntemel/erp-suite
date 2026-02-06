@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import SearchList from "./../../components/SearchList";
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
+import { ShopOrderService, ShopMaterialService } from "../../services/shopOrder.service";
 
 declare global {
   interface Window {
@@ -260,6 +261,81 @@ interface CustomerOrderLineCreateDto {
   rowstate?: string | null;
 }
 
+// YENİ: İş Emri DTO Interface
+interface NewShopOrderDto {
+  contract: string;
+  orderNo: string;
+  orderCode: string;
+  partNo: string;
+  revisedStartDate?: string;
+  revisedDueDate?: string;
+  needDate?: string;
+  revisedQtyDue?: number;
+  qtyComplete?: number;
+  noteText?: string;
+  customerOrderNo?: string;
+  rowstate: string;
+  createdBy: string;
+  rowversion: number;
+  rowkey: string;
+}
+
+// Ürün Ağacı Interface'leri
+interface ProdStructureHead {
+  id: number;
+  Contract: string;
+  PartNo: string;
+  EngChgLevel: string;
+  BomTypeDb: string;
+  NoteText?: string;
+  EffPhaseInDate?: string;
+  EffPhaseOutDate?: string;
+  CreateDate: string;
+  Rowstate?: string;
+  CreatedBy: string;
+  Rowversion: number;
+  Rowkey: string;
+}
+
+interface ProdStructure {
+  id: number;
+  Contract: string;
+  PartNo: string;
+  EngChgLevel: string;
+  BomTypeDb: string;
+  AlternativeNo: string;
+  LineItemNo: number;
+  LineSequence: number;
+  OperationNo: number;
+  NoteText?: string;
+  Source?: string;
+  CreateDate: string;
+  LastActivityDate?: string;
+  ComponentPart?: string;
+  Rowstate?: string;
+  CreatedBy: string;
+  Rowversion: number;
+  Rowkey: string;
+  RoutingOperationNo?: number;
+}
+
+// İş Emri Malzeme Tahsisi
+interface ShopMaterialAlloc {
+  contract: string;
+  orderNo: string;
+  lineItemNo: number;
+  partNo: string;
+  operationNo?: number;
+  qtyAssigned?: number;
+  qtyIssued?: number;
+  qtyPerAssembly?: number;
+  qtyRequired?: number;
+  noteText?: string;
+  projectId?: string;
+  rowstate?: string;
+  rowkey: string;
+}
+
 const tabs = ["Satış Sipariş Satırları", "Taşıma Bilgileri"];
 
 // Düzenleme formu için style constants
@@ -281,6 +357,7 @@ const labelStyle = {
 } as const;
 
 export default function CustomerOrderPage() {
+  
   const [activeTab, setActiveTab] = useState("Satış Sipariş Satırları");
   const [selectedOrder, setSelectedOrder] = useState<CustomerOrder | null>(null);
   const [editingOrder, setEditingOrder] = useState<CustomerOrder | null>(null);
@@ -297,11 +374,33 @@ export default function CustomerOrderPage() {
   const [searchForHead, setSearchForHead] = useState(false); // true: head için, false: line için
   const [searchForLineIndex, setSearchForLineIndex] = useState<number>(-1); // hangi satır için
 
+  // YENİ: İş Emri State'leri
+  const [showShopOrderModal, setShowShopOrderModal] = useState(false);
+  const [selectedLineForShopOrder, setSelectedLineForShopOrder] = useState<CustomerOrderLine | null>(null);
+  const [_prodStructureHeads, setProdStructureHeads] = useState<ProdStructureHead[]>([]);
+  const [_prodStructures, setProdStructures] = useState<ProdStructure[]>([]);
+  const [_prodStructureLoading, setProdStructureLoading] = useState(false);
+  const [shopOrderMaterials, setShopOrderMaterials] = useState<ShopMaterialAlloc[]>([]);
+  const [newShopOrderData, setNewShopOrderData] = useState<NewShopOrderDto>({
+    contract: "01",
+    orderNo: `WO${String(Math.floor(Math.random() * 10000)).padStart(5, '0')}`,
+    orderCode: "01",
+    partNo: "",
+    revisedStartDate: new Date().toISOString().split('T')[0],
+    revisedDueDate: new Date().toISOString().split('T')[0],
+    revisedQtyDue: 1,
+    qtyComplete: 0,
+    rowstate: "Released",
+    createdBy: "admin",
+    rowversion: 1,
+    rowkey: `new-shop-order-${Date.now()}`
+  });
+
   // Yeni sipariş formu state'leri (camelCase - API'ye gönderilecek)
   const [newOrderData, setNewOrderData] = useState<CustomerOrderCreateDto>({
     company: "TST",
     orderNo: `SO${String(Math.floor(Math.random() * 10000)).padStart(5, '0')}`,
-    contract: "001",
+    contract: "01",
     customerNo: "",
     dateEntered: new Date().toISOString().split('T')[0],
     createdBy: "admin",
@@ -314,7 +413,7 @@ export default function CustomerOrderPage() {
     {
       company: "TST",
       orderNo: `SO${String(Math.floor(Math.random() * 10000)).padStart(5, '0')}`,
-      contract: "001",
+      contract: "01",
       lineNo: "001",
       relNo: "001",
       catalogNo: "",
@@ -631,6 +730,366 @@ export default function CustomerOrderPage() {
       setOrderLines([]);
       setEditingOrderLines([]);
     }
+  };
+
+
+  // Ürün Ağacı Satırlarını Getir
+  // Ürün Ağacı Satırlarını Getir - HATA DÜZELTMELİ VERSİYON
+const fetchProdStructures = async (contract: string, partNo: string, engChgLevel: string = "A", bomTypeDb: string = "STANDARD") => {
+  try {
+    setProdStructureLoading(true);
+    
+    console.log(`🔍 Ürün ağacı satırları aranıyor:`, {
+      contract,
+      partNo,
+      engChgLevel,
+      bomTypeDb
+    });
+    
+    const response = await fetch(
+      `/api/prodstructure/head/${contract}/${partNo}/${engChgLevel}/${bomTypeDb}/000`
+    );
+    
+    console.log(`📡 API Response Status: ${response.status}`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`✅ API'den gelen veri:`, data);
+      console.log(`📊 Veri tipi: ${Array.isArray(data) ? 'Array' : typeof data}`);
+      
+      // Veriyi işle - eğer array değilse array yap
+      const dataArray = Array.isArray(data) ? data : [data];
+      
+      console.log(`📊 İşlenecek veri sayısı: ${dataArray.length}`);
+      
+      const formattedStructures: ProdStructure[] = dataArray.map((apiLine: any, index: number) => {
+        const formatted = {
+          id: index + 1,
+          Contract: apiLine.contract || apiLine.Contract || contract,
+          PartNo: apiLine.partNo || apiLine.PartNo || partNo,
+          EngChgLevel: apiLine.engChgLevel || apiLine.EngChgLevel || engChgLevel,
+          BomTypeDb: apiLine.bomTypeDb || apiLine.BomTypeDb || bomTypeDb,
+          AlternativeNo: apiLine.alternativeNo || apiLine.AlternativeNo || "000",
+          LineItemNo: apiLine.lineItemNo || apiLine.LineItemNo || index + 1,
+          LineSequence: apiLine.lineSequence || apiLine.LineSequence || index + 1,
+          OperationNo: apiLine.operationNo || apiLine.OperationNo || 10,
+          NoteText: apiLine.noteText || apiLine.NoteText || undefined,
+          Source: apiLine.source || apiLine.Source || undefined,
+          CreateDate: apiLine.createDate || apiLine.CreateDate || new Date().toISOString().split('T')[0],
+          LastActivityDate: apiLine.lastActivityDate || apiLine.LastActivityDate || undefined,
+          ComponentPart: apiLine.componentPart || apiLine.ComponentPart || undefined,
+          Rowstate: apiLine.rowstate || apiLine.Rowstate || "ACTIVE",
+          CreatedBy: apiLine.createdBy || apiLine.CreatedBy || "admin",
+          Rowversion: apiLine.rowversion || apiLine.Rowversion || 1,
+          Rowkey: apiLine.rowkey || apiLine.Rowkey || `line-${Date.now()}-${index}`,
+          RoutingOperationNo: apiLine.routingOperationNo || apiLine.RoutingOperationNo
+        };
+        
+        console.log(`📝 Formatlanmış satır ${index + 1}:`, formatted);
+        return formatted;
+      });
+      
+      console.log(`✅ Formatlanmış yapılar (${formattedStructures.length} adet):`, formattedStructures);
+      setProdStructures(formattedStructures);
+      return formattedStructures;
+    } else {
+      const errorText = await response.text();
+      console.error(`❌ Ürün ağacı satırları getirilemedi: ${errorText}`);
+      console.error(`❌ Status: ${response.status} ${response.statusText}`);
+      
+      // Boş array döndür
+      setProdStructures([]);
+      return [];
+    }
+  } catch (err) {
+    console.error("❌ Ürün ağacı satırları getirilirken hata:", err);
+    
+    // Hata mesajını daha detaylı göster
+    if (err instanceof Error) {
+      console.error(`❌ Hata detayı: ${err.message}`);
+      console.error(`❌ Stack trace: ${err.stack}`);
+    }
+    
+    setProdStructures([]);
+    return [];
+  } finally {
+    setProdStructureLoading(false);
+  }
+};
+
+  // Ürün Ağacını Malzeme Tahsislerine Çevir
+  const convertProdStructuresToMaterials = (structures: ProdStructure[], orderQty: number = 1) => {
+    const materials: ShopMaterialAlloc[] = structures
+      .filter(structure => structure.ComponentPart && structure.ComponentPart.trim() !== "")
+      .map((structure, index) => ({
+        contract: "01",
+        orderNo: newShopOrderData.orderNo,
+        lineItemNo: index + 1,
+        partNo: structure.ComponentPart || "",
+        operationNo: structure.OperationNo || 10,
+        qtyAssigned: 0,
+        qtyIssued: 0,
+        qtyPerAssembly: 1,
+        qtyRequired: orderQty * 1,
+        rowstate: "Active",
+        rowkey: `shop-mat-${Date.now()}-${index}`
+      }));
+    
+    setShopOrderMaterials(materials);
+    return materials;
+  };
+
+  // İş Emri Oluşturma Modalını Aç
+  const openShopOrderModal = async (orderLine: CustomerOrderLine) => {
+  setSelectedLineForShopOrder(orderLine);
+  setShowShopOrderModal(true);
+  
+  // İş emri verilerini hazırla
+  const shopOrderData: NewShopOrderDto = {
+    contract: orderLine.Contract || "01",
+    orderNo: `WO${String(Math.floor(Math.random() * 10000)).padStart(5, '0')}`,
+    orderCode: "001",
+    partNo: orderLine.PartNo,
+    revisedStartDate: new Date().toISOString().split('T')[0],
+    revisedDueDate: orderLine.DeliveryDate || new Date().toISOString().split('T')[0],
+    revisedQtyDue: orderLine.OrderQty || orderLine.BuyQtyDue || 1,
+    qtyComplete: 0,
+    noteText: `Satış Siparişi: ${selectedOrder?.OrderNo}, Satır: ${orderLine.OrderLine}`,
+    customerOrderNo: selectedOrder?.OrderNo,
+    rowstate: "Released",
+    createdBy: "admin",
+    rowversion: 1,
+    rowkey: `new-shop-order-${Date.now()}`
+  };
+  
+  setNewShopOrderData(shopOrderData);
+  
+  // Ürün ağacını getir
+  if (orderLine.PartNo) {
+    try {
+      console.log(`🛠️ İş Emri için malzeme: ${orderLine.PartNo}`);
+      
+      // Direkt sabit değerlerle ürün ağacını getir
+      const contract = orderLine.Contract || "01";
+      const partNo = orderLine.PartNo;
+      const engChgLevel = "A";
+      const bomTypeDb = "STANDARD";
+      
+      console.log(`🔍 Direkt ürün ağacı çekiliyor: ${contract}/${partNo}/${engChgLevel}/${bomTypeDb}`);
+      
+      const structures = await fetchProdStructures(
+        contract,
+        partNo,
+        engChgLevel,
+        bomTypeDb
+      );
+      
+      console.log(`📊 Ürün ağacı satırları (${structures.length} adet):`, structures);
+      
+      if (structures.length > 0) {
+        const materials = convertProdStructuresToMaterials(structures, orderLine.OrderQty || orderLine.BuyQtyDue || 1);
+        console.log(`📦 Malzeme tahsisleri oluşturuldu:`, materials.length, "adet");
+        setShopOrderMaterials(materials);
+        
+        // Başlık için de test verisi oluştur (gösterim için)
+        const testHead: ProdStructureHead = {
+          id: 1,
+          Contract: contract,
+          PartNo: partNo,
+          EngChgLevel: engChgLevel,
+          BomTypeDb: bomTypeDb,
+          CreateDate: new Date().toISOString().split('T')[0],
+          CreatedBy: "admin",
+          Rowversion: 1,
+          Rowkey: `head-${Date.now()}`
+        };
+        setProdStructureHeads([testHead]);
+      } else {
+        console.warn(`⚠️ "${orderLine.PartNo}" malzemesi için ürün ağacı bulunamadı.`);
+        
+        // Kullanıcıya seçenek sun
+        const userChoice = window.confirm(
+          `"${orderLine.PartNo}" malzemesi için ürün ağacı bulunamadı.\n\n` +
+          `Devam etmek istiyor musunuz? (Boş malzeme listesi ile oluşturulacak)`
+        );
+        
+        if (userChoice) {
+          console.log(`✅ Kullanıcı boş malzeme listesi ile devam etmeyi seçti.`);
+          
+          // Boş malzeme listesi oluştur
+          const emptyMaterial: ShopMaterialAlloc = {
+            contract: contract,
+            orderNo: shopOrderData.orderNo,
+            lineItemNo: 1,
+            partNo: partNo,
+            operationNo: 10,
+            qtyAssigned: 0,
+            qtyIssued: 0,
+            qtyPerAssembly: 1,
+            qtyRequired: orderLine.OrderQty || orderLine.BuyQtyDue || 1,
+            noteText: "Otomatik oluşturuldu - Ürün ağacı yok",
+            rowstate: "Active",
+            rowkey: `empty-mat-${Date.now()}`
+          };
+          
+          setShopOrderMaterials([emptyMaterial]);
+        } else {
+          console.log(`❌ Kullanıcı işlemi iptal etti.`);
+          handleCloseShopOrderModal();
+        }
+      }
+    } catch (error) {
+      console.error("❌ Ürün ağacı yüklenirken hata:", error);
+      
+      // Daha açıklayıcı hata mesajı
+      alert(`Ürün ağacı yüklenirken hata oluştu:\n\n${error}\n\nURL: /api/prodstructure/head/${orderLine.Contract || "01"}/${orderLine.PartNo}/A/STANDARD/000`);
+      
+      // Hata durumunda da boş liste ile devam et
+      const emptyMaterial: ShopMaterialAlloc = {
+        contract: orderLine.Contract || "01",
+        orderNo: shopOrderData.orderNo,
+        lineItemNo: 1,
+        partNo: orderLine.PartNo,
+        operationNo: 10,
+        qtyAssigned: 0,
+        qtyIssued: 0,
+        qtyPerAssembly: 1,
+        qtyRequired: orderLine.OrderQty || orderLine.BuyQtyDue || 1,
+        noteText: "Hata durumunda otomatik oluşturuldu",
+        rowstate: "Active",
+        rowkey: `error-mat-${Date.now()}`
+      };
+      
+      setShopOrderMaterials([emptyMaterial]);
+    }
+  } else {
+    alert(`⚠️ Malzeme numarası belirtilmemiş!`);
+    setShopOrderMaterials([]);
+  }
+};
+
+  // İş Emri Oluştur
+  const handleCreateShopOrder = async () => {
+  if (!selectedLineForShopOrder) return;
+  
+  try {
+    setIsSaving(true);
+    
+    console.log("=== İŞ EMRI OLUŞTURMA BAŞLANGICI ===");
+    console.log("Seçili satır:", selectedLineForShopOrder);
+    console.log("İş emri verisi:", newShopOrderData);
+    console.log("Malzeme listesi:", shopOrderMaterials);
+    
+    // 1. ShopOrderService kullanarak iş emri oluştur
+    console.log("1. ShopOrderService.createOrder çağrılıyor...");
+    
+    try {
+      // ShopOrderCreateDto formatına çevir
+      const shopOrderCreateDto = {
+        contract: newShopOrderData.contract,
+        orderNo: newShopOrderData.orderNo,
+        orderCode: newShopOrderData.orderCode,
+        partNo: newShopOrderData.partNo,
+        revisedStartDate: newShopOrderData.revisedStartDate,
+        revisedDueDate: newShopOrderData.revisedDueDate,
+        needDate: newShopOrderData.revisedDueDate, // needDate = revisedDueDate
+        revisedQtyDue: newShopOrderData.revisedQtyDue,
+        qtyComplete: 0,
+        noteText: newShopOrderData.noteText || `Satış Siparişi: ${selectedOrder?.OrderNo}, Satır: ${selectedLineForShopOrder.OrderLine}`,
+        customerOrderNo: selectedOrder?.OrderNo,
+        rowstate: "Released",
+        createdBy: "admin"
+      };
+      
+      console.log("ShopOrderCreateDto:", shopOrderCreateDto);
+      
+      const savedOrder = await ShopOrderService.createOrder(shopOrderCreateDto);
+      console.log("✅ İş emri başarıyla oluşturuldu:", savedOrder);
+      
+      // 2. Malzeme tahsislerini kaydet
+      console.log(`2. Malzeme tahsisleri kaydediliyor (${shopOrderMaterials.length} adet)...`);
+      
+      if (shopOrderMaterials.length > 0) {
+        let materialErrors: string[] = [];
+        let successCount = 0;
+        
+        for (const material of shopOrderMaterials) {
+          try {
+            // ShopMaterialAllocCreateDto formatına çevir
+            const materialCreateDto = {
+              contract: material.contract,
+              orderNo: savedOrder.orderNo || newShopOrderData.orderNo,
+              lineItemNo: material.lineItemNo,
+              partNo: material.partNo,
+              operationNo: material.operationNo,
+              qtyAssigned: material.qtyAssigned || 0,
+              qtyIssued: material.qtyIssued || 0,
+              qtyPerAssembly: material.qtyPerAssembly || 1,
+              qtyRequired: material.qtyRequired || (selectedLineForShopOrder.OrderQty || selectedLineForShopOrder.BuyQtyDue || 1),
+              noteText: material.noteText || `Satış Siparişi: ${selectedOrder?.OrderNo}`,
+              rowstate: "Active"
+            };
+            
+            console.log(`📦 Malzeme kaydediliyor:`, materialCreateDto);
+            
+            await ShopMaterialService.createMaterial(materialCreateDto);
+            successCount++;
+            console.log(`✅ Malzeme ${material.lineItemNo} başarıyla kaydedildi`);
+            
+          } catch (materialErr) {
+            console.error(`❌ Malzeme ${material.lineItemNo} kayıt hatası:`, materialErr);
+            materialErrors.push(`Malzeme ${material.lineItemNo}: ${materialErr instanceof Error ? materialErr.message : "Bilinmeyen hata"}`);
+          }
+        }
+        
+        if (materialErrors.length > 0) {
+          console.warn("⚠️ Bazı malzemeler kaydedilemedi:", materialErrors);
+          alert(`✅ İş emri oluşturuldu: ${savedOrder.orderNo}\n\n⚠️ Ancak ${materialErrors.length} malzeme kaydedilemedi:\n${materialErrors.slice(0, 5).join('\n')}`);
+        } else {
+          console.log(`✅ Tüm malzemeler başarıyla kaydedildi (${successCount} adet)`);
+        }
+      } else {
+        console.log("ℹ️ Kaydedilecek malzeme yok");
+      }
+      
+      // Başarı mesajı
+      alert(`✅ İş emri başarıyla oluşturuldu!\n\nİş Emri No: ${savedOrder.orderNo}\nMalzeme: ${newShopOrderData.partNo}\nMiktar: ${newShopOrderData.revisedQtyDue}\n\nMalzeme sayısı: ${shopOrderMaterials.length}`);
+      
+      // Modal'ı kapat ve state'leri sıfırla
+      console.log("✅ İş emri oluşturma başarıyla tamamlandı");
+      setShowShopOrderModal(false);
+      setSelectedLineForShopOrder(null);
+      setShopOrderMaterials([]);
+      
+    } catch (orderErr) {
+      console.error("❌ ShopOrderService.createOrder hatası:", orderErr);
+      throw orderErr;
+    }
+    
+  } catch (error) {
+    console.error("❌ İş emri oluşturma hatası:", error);
+    
+    // Daha detaylı hata mesajı
+    let errorMessage = "Bilinmeyen bir hata oluştu";
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      console.error(`❌ Hata stack:`, error.stack);
+    }
+    
+    alert(`❌ İş emri oluşturulamadı!\n\nHata: ${errorMessage}\n\nLütfen:\n1. API endpoint'lerini kontrol edin\n2. Konsoldaki hata detaylarını inceleyin`);
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+  // İş Emri Modalını Kapat
+  const handleCloseShopOrderModal = () => {
+    setShowShopOrderModal(false);
+    setSelectedLineForShopOrder(null);
+    setShopOrderMaterials([]);
+    setProdStructureHeads([]);
+    setProdStructures([]);
   };
 
   // Inventory Part Search Functions
@@ -1034,7 +1493,7 @@ export default function CustomerOrderPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [editingOrder, selectedOrder, editingOrderLines, customerOrders.length, fetchCustomerOrders]);
+  }, [editingOrder, selectedOrder, editingOrderLines, customerOrders.length]);
 
   const handleDeleteOrder = useCallback(async () => {
     if (!selectedOrder) return;
@@ -1265,13 +1724,13 @@ export default function CustomerOrderPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [newOrderData, newOrderLines, customerOrders, fetchCustomerOrders]);
+  }, [newOrderData, newOrderLines, customerOrders]);
 
   const resetForm = useCallback(() => {
     setNewOrderData({
       company: "TST",
       orderNo: `SO${String(Math.floor(Math.random() * 10000)).padStart(5, '0')}`,
-      contract: "001",
+      contract: "01",
       customerNo: "",
       dateEntered: new Date().toISOString().split('T')[0],
       createdBy: "admin",
@@ -1284,7 +1743,7 @@ export default function CustomerOrderPage() {
       {
         company: "TST",
         orderNo: `SO${String(Math.floor(Math.random() * 10000)).padStart(5, '0')}`,
-        contract: "001",
+        contract: "01",
         lineNo: "001",
         relNo: "001",
         catalogNo: "",
@@ -1496,6 +1955,318 @@ export default function CustomerOrderPage() {
       alert('❌ PDF oluşturulurken bir hata oluştu!');
     }
   }, [selectedOrder, editingOrderLines, calculateOrderLinesTotal]);
+
+  // YENİ: İş Emri Modalı JSX
+  const ShopOrderModal = () => {
+    if (!showShopOrderModal) return null;
+
+    return (
+      <div style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        zIndex: 2000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px"
+      }}>
+        <div style={{
+          backgroundColor: "#1e293b",
+          borderRadius: "12px",
+          padding: "20px",
+          width: "90%",
+          maxWidth: "1000px",
+          maxHeight: "90vh",
+          overflow: "auto",
+          border: "2px solid #38bdf8"
+        }}>
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "15px",
+            paddingBottom: "15px",
+            borderBottom: "1px solid #334155"
+          }}>
+            <h2 style={{ 
+              margin: 0, 
+              color: "#f1f5f9", 
+              fontSize: "1.2rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px"
+            }}>
+              <i className="fas fa-industry" style={{ color: "#10b981" }}></i>
+              İş Emri Oluştur
+            </h2>
+            <button
+              onClick={handleCloseShopOrderModal}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#94a3b8",
+                cursor: "pointer",
+                fontSize: "1.2rem"
+              }}
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+
+          {/* İş Emri Bilgileri */}
+          <div style={{ marginBottom: "20px" }}>
+            <h3 style={{ 
+              color: "#f1f5f9", 
+              fontSize: "1rem", 
+              marginBottom: "10px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px"
+            }}>
+              <i className="fas fa-info-circle" style={{ color: "#38bdf8" }}></i>
+              İş Emri Bilgileri
+            </h3>
+            
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
+              gap: "15px",
+              backgroundColor: "rgba(30, 41, 59, 0.5)",
+              padding: "15px",
+              borderRadius: "8px",
+              border: "1px solid #334155"
+            }}>
+              <div>
+                <label style={labelStyle}>İş Emri No</label>
+                <input
+                  type="text"
+                  value={newShopOrderData.orderNo}
+                  onChange={(e) => setNewShopOrderData({...newShopOrderData, orderNo: e.target.value})}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Malzeme No</label>
+                <input
+                  type="text"
+                  value={newShopOrderData.partNo}
+                  readOnly
+                  style={{...inputStyle, backgroundColor: "#334155"}}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Miktar</label>
+                <input
+                  type="number"
+                  value={newShopOrderData.revisedQtyDue}
+                  onChange={(e) => setNewShopOrderData({...newShopOrderData, revisedQtyDue: Number(e.target.value)})}
+                  style={inputStyle}
+                  min="1"
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Başlangıç Tarihi</label>
+                <input
+                  type="date"
+                  value={newShopOrderData.revisedStartDate}
+                  onChange={(e) => setNewShopOrderData({...newShopOrderData, revisedStartDate: e.target.value})}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Bitiş Tarihi</label>
+                <input
+                  type="date"
+                  value={newShopOrderData.revisedDueDate}
+                  onChange={(e) => setNewShopOrderData({...newShopOrderData, revisedDueDate: e.target.value})}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Malzeme Listesi */}
+          {shopOrderMaterials.length > 0 && (
+            <div style={{ marginBottom: "20px" }}>
+              <h3 style={{ 
+                color: "#f1f5f9", 
+                fontSize: "1rem", 
+                marginBottom: "10px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px"
+              }}>
+                <i className="fas fa-boxes" style={{ color: "#f59e0b" }}></i>
+                Malzeme Tahsisleri ({shopOrderMaterials.length} adet)
+              </h3>
+              
+              <div style={{
+                maxHeight: "200px",
+                overflowY: "auto",
+                borderRadius: "8px",
+                border: "1px solid #334155"
+              }}>
+                <table style={{ 
+                  width: "100%", 
+                  borderCollapse: "collapse" 
+                }}>
+                  <thead style={{
+                    backgroundColor: "#334155",
+                    position: "sticky",
+                    top: 0
+                  }}>
+                    <tr>
+                      <th style={{ 
+                        padding: "10px", 
+                        textAlign: "left", 
+                        color: "#f1f5f9", 
+                        fontSize: "0.85rem",
+                        borderBottom: "1px solid #475569"
+                      }}>
+                        Sıra
+                      </th>
+                      <th style={{ 
+                        padding: "10px", 
+                        textAlign: "left", 
+                        color: "#f1f5f9", 
+                        fontSize: "0.85rem",
+                        borderBottom: "1px solid #475569"
+                      }}>
+                        Malzeme No
+                      </th>
+                      <th style={{ 
+                        padding: "10px", 
+                        textAlign: "left", 
+                        color: "#f1f5f9", 
+                        fontSize: "0.85rem",
+                        borderBottom: "1px solid #475569"
+                      }}>
+                        İşlem No
+                      </th>
+                      <th style={{ 
+                        padding: "10px", 
+                        textAlign: "left", 
+                        color: "#f1f5f9", 
+                        fontSize: "0.85rem",
+                        borderBottom: "1px solid #475569"
+                      }}>
+                        Gerekli Miktar
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shopOrderMaterials.map((material, index) => (
+                      <tr key={material.rowkey}
+                        style={{
+                          borderBottom: "1px solid #334155",
+                          backgroundColor: index % 2 === 0 ? "rgba(30, 41, 59, 0.5)" : "rgba(30, 41, 59, 0.3)"
+                        }}
+                      >
+                        <td style={{ 
+                          padding: "10px", 
+                          color: "#f1f5f9",
+                          fontSize: "0.85rem"
+                        }}>
+                          {material.lineItemNo}
+                        </td>
+                        <td style={{ 
+                          padding: "10px", 
+                          color: "#94a3b8",
+                          fontSize: "0.85rem"
+                        }}>
+                          {material.partNo}
+                        </td>
+                        <td style={{ 
+                          padding: "10px", 
+                          color: "#94a3b8",
+                          fontSize: "0.85rem"
+                        }}>
+                          {material.operationNo || 10}
+                        </td>
+                        <td style={{ 
+                          padding: "10px", 
+                          color: "#10b981",
+                          fontSize: "0.85rem"
+                        }}>
+                          {material.qtyRequired}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Butonlar */}
+          <div style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "12px",
+            marginTop: "20px",
+            paddingTop: "20px",
+            borderTop: "1px solid #334155"
+          }}>
+            <button
+              onClick={handleCloseShopOrderModal}
+              style={{
+                background: "#64748b",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                padding: "10px 20px",
+                fontSize: "0.9rem",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px"
+              }}
+            >
+              <i className="fas fa-times"></i>
+              <span>İptal</span>
+            </button>
+            <button
+              onClick={handleCreateShopOrder}
+              disabled={isSaving || !newShopOrderData.partNo}
+              style={{
+                background: !newShopOrderData.partNo
+                  ? "#475569" 
+                  : isSaving
+                  ? "#f59e0b"
+                  : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                padding: "10px 25px",
+                fontSize: "0.9rem",
+                cursor: !newShopOrderData.partNo || isSaving ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                opacity: !newShopOrderData.partNo || isSaving ? 0.6 : 1
+              }}
+            >
+              {isSaving ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i>
+                  <span>Oluşturuluyor...</span>
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-check"></i>
+                  <span>İş Emrini Oluştur</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // YENİ SİPARİŞ OLUŞTURMA EKRANI
   if (isCreatingNewOrder) {
@@ -1957,7 +2728,7 @@ export default function CustomerOrderPage() {
                   value={newOrderData.contract}
                   onChange={(e) => handleNewOrderDataChange('contract', e.target.value)}
                   style={inputStyle}
-                  placeholder="Örn: 001"
+                  placeholder="Örn: 01"
                 />
               </div>
               <div>
@@ -2079,7 +2850,7 @@ export default function CustomerOrderPage() {
               {/* Grid Header */}
               <div style={{
                 display: "grid",
-                gridTemplateColumns: "60px 150px 2fr 100px 100px 120px 60px", // 120px -> 150px yaptık
+                gridTemplateColumns: "60px 150px 2fr 100px 100px 120px 60px 100px", 
                 backgroundColor: "#334155",
                 padding: "12px 15px",
                 borderBottom: "1px solid #475569",
@@ -2097,6 +2868,7 @@ export default function CustomerOrderPage() {
                 <div>Birim Fiyat</div>
                 <div>Toplam</div>
                 <div>Sil</div>
+                <div>İş Emri</div> {/* YENİ KOLON */}
               </div>
 
               {/* Grid Body */}
@@ -2112,7 +2884,7 @@ export default function CustomerOrderPage() {
       key={index}
       style={{
         display: "grid",
-        gridTemplateColumns: "60px 150px 2fr 100px 100px 120px 60px",
+        gridTemplateColumns: "60px 150px 2fr 100px 100px 120px 60px 100px",
         padding: "10px 15px",
         borderBottom: "1px solid #334155",
         fontSize: "0.85rem",
@@ -2130,18 +2902,18 @@ export default function CustomerOrderPage() {
         <input
           type="text"
           value={line.partNo}
-          onChange={(e) => handleEditingOrderLineChange(index, 'PartNo', e.target.value)}
-        style={{
-          flex: 1,
-          minWidth: 0,
-          padding: "6px 8px",
-          backgroundColor: "rgba(30, 41, 59, 0.8)",
-          border: "1px solid #475569",
-          borderRadius: "4px",
-          color: "#f1f5f9",
-          fontSize: "0.85rem"
-        }}
-      />
+          onChange={(e) => handleNewOrderLineChange(index, 'partNo', e.target.value)}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            padding: "6px 8px",
+            backgroundColor: "rgba(30, 41, 59, 0.8)",
+            border: "1px solid #475569",
+            borderRadius: "4px",
+            color: "#f1f5f9",
+            fontSize: "0.85rem"
+          }}
+        />
         <button
           onClick={() => openInventorySearch(false, index)}
           style={{
@@ -2256,6 +3028,31 @@ export default function CustomerOrderPage() {
           <i className="fas fa-trash" style={{ fontSize: "0.7rem" }}></i>
         </button>
       </div>
+      
+      {/* İş Emri Butonu - Yeni sipariş için pasif */}
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <button
+          disabled
+          style={{
+            background: "#64748b",
+            color: "#94a3b8",
+            border: "none",
+            borderRadius: "4px",
+            padding: "6px 12px",
+            fontSize: "0.75rem",
+            cursor: "not-allowed",
+            display: "flex",
+            alignItems: "center",
+            gap: "5px",
+            whiteSpace: "nowrap",
+            opacity: 0.5
+          }}
+          title="Önce siparişi kaydedin"
+        >
+          <i className="fas fa-industry"></i>
+          <span>Kaydet Sonra</span>
+        </button>
+      </div>
     </div>
   );
 })}
@@ -2264,7 +3061,7 @@ export default function CustomerOrderPage() {
               {/* Grid Footer - Toplamlar */}
               <div style={{
                 display: "grid",
-                gridTemplateColumns: "60px 120px 2fr 100px 100px 120px 60px",
+                gridTemplateColumns: "60px 150px 2fr 100px 100px 120px 60px 100px",
                 padding: "12px 15px",
                 backgroundColor: "#1e293b",
                 borderTop: "2px solid #475569",
@@ -2272,12 +3069,13 @@ export default function CustomerOrderPage() {
                 fontWeight: "600",
                 color: "#f1f5f9"
               }}>
-                <div style={{ gridColumn: "1 / 6", textAlign: "right", paddingRight: "10px" }}>
+                <div style={{ gridColumn: "1 / 7", textAlign: "right", paddingRight: "10px" }}>
                   GENEL TOPLAM:
                 </div>
                 <div style={{ color: "#10b981", fontSize: "1rem", textAlign: "right", paddingRight: "10px" }}>
                   {grandTotal.toFixed(2)}
                 </div>
+                <div></div>
                 <div></div>
               </div>
             </div>
@@ -2653,6 +3451,9 @@ export default function CustomerOrderPage() {
           </div>
         </div>
       )}
+
+      {/* İş Emri Modalı */}
+      <ShopOrderModal />
 
       {/* SearchList GİZLİ durumda */}
       {!isSearchListVisible && (
@@ -3301,7 +4102,7 @@ export default function CustomerOrderPage() {
                      
                       <div style={{
                         display: "grid",
-                        gridTemplateColumns: "60px 120px 2fr 100px 100px 120px 60px",
+                        gridTemplateColumns: "60px 150px 2fr 100px 100px 120px 60px 100px",
                         backgroundColor: "#334155",
                         padding: "12px 15px",
                         borderBottom: "1px solid #475569",
@@ -3316,195 +4117,221 @@ export default function CustomerOrderPage() {
                         <div>Birim Fiyat</div>
                         <div>Toplam</div>
                         <div>İşlem</div>
+                         <div>İş Emri</div> 
                       </div>
 
-                      {/* Mevcut Sipariş Satırları - activeTab === "Satış Sipariş Satırları" kısmı */}
-
-{editingOrderLines.map((line, index) => (
-  <div
-    key={line.id}
-    style={{
-      display: "grid",
-      gridTemplateColumns: "60px 150px 2fr 100px 100px 120px 60px", // Aynı grid yapısı
-      padding: "10px 15px",
-      borderBottom: "1px solid #334155",
-      fontSize: "0.85rem",
-      color: "#f1f5f9",
-      backgroundColor: index % 2 === 0 ? "rgba(30, 41, 59, 0.5)" : "rgba(30, 41, 59, 0.3)",
-      alignItems: "center",
-      gap: "10px" // ÖNEMLİ: Gap ekledik
-    }}
-  >
-    {/* Satır No */}
-    <div>{line.OrderLine}</div>
-    
-    {/* Malzeme - Düzeltilmiş */}
-    <div>
-      {isEditing ? (
-        <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-          <input
-            type="text"
-            value={line.PartNo}
-            onChange={(e) => handleEditingOrderLineChange(index, 'PartNo', e.target.value)}
-            style={{
-              flex: 1,
-              minWidth: 0, // ÖNEMLİ: Overflow önleme
-              padding: "6px 8px",
-              backgroundColor: "rgba(30, 41, 59, 0.8)",
-              border: "1px solid #475569",
-              borderRadius: "4px",
-              color: "#f1f5f9",
-              fontSize: "0.85rem"
-            }}
-            placeholder="PART001"
-          />
-          <button
-            onClick={() => openInventorySearch(false, index)}
-            style={{
-              background: "#8b5cf6",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              padding: "6px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "32px",
-              height: "32px",
-              flexShrink: 0 // ÖNEMLİ: Butonun ezilmesini önler
-            }}
-            title="Malzeme Ara"
-          >
-            <i className="fas fa-search" style={{ fontSize: "0.7rem" }}></i>
-          </button>
-        </div>
-      ) : (
-        <div style={{ padding: "6px 8px" }}>{line.PartNo}</div>
-      )}
-    </div>
-    
-    {/* Açıklama - Düzeltilmiş */}
-    <div>
-      {isEditing ? (
-        <input
-          type="text"
-          value={line.CatalogDesc || ''}
-          onChange={(e) => handleEditingOrderLineChange(index, 'CatalogDesc', e.target.value)}
-          style={{
-            width: "100%",
-            padding: "6px 8px",
-            backgroundColor: "rgba(30, 41, 59, 0.8)",
-            border: "1px solid #475569",
-            borderRadius: "4px",
-            color: "#f1f5f9",
-            fontSize: "0.85rem",
-            boxSizing: "border-box" // ÖNEMLİ: Padding dahil genişlik hesabı
-          }}
-          placeholder="Açıklama"
-        />
-      ) : (
-        <div style={{ padding: "6px 8px" }}>{line.CatalogDesc || '-'}</div>
-      )}
-    </div>
-    
-    {/* Miktar */}
-    <div>
-      {isEditing ? (
-        <input
-          type="number"
-          value={line.OrderQty || line.BuyQtyDue || 0}
-          onChange={(e) => handleEditingOrderLineChange(index, 'OrderQty', e.target.value)}
-          style={{
-            width: "100%",
-            padding: "6px 8px",
-            backgroundColor: "rgba(30, 41, 59, 0.8)",
-            border: "1px solid #475569",
-            borderRadius: "4px",
-            color: "#f1f5f9",
-            fontSize: "0.85rem",
-            boxSizing: "border-box"
-          }}
-          min="0"
-          step="0.01"
-        />
-      ) : (
-        <div style={{ padding: "6px 8px", textAlign: "right" }}>
-          {(line.OrderQty || line.BuyQtyDue || 0).toFixed(2)}
-        </div>
-      )}
-    </div>
-    
-    {/* Birim Fiyat */}
-    <div>
-      {isEditing ? (
-        <input
-          type="number"
-          value={line.Price || line.SaleUnitPrice || 0}
-          onChange={(e) => handleEditingOrderLineChange(index, 'Price', e.target.value)}
-          style={{
-            width: "100%",
-            padding: "6px 8px",
-            backgroundColor: "rgba(30, 41, 59, 0.8)",
-            border: "1px solid #475569",
-            borderRadius: "4px",
-            color: "#f1f5f9",
-            fontSize: "0.85rem",
-            boxSizing: "border-box"
-          }}
-          min="0"
-          step="0.01"
-        />
-      ) : (
-        <div style={{ padding: "6px 8px", textAlign: "right" }}>
-          {(line.Price || line.SaleUnitPrice || 0).toFixed(2)}
-        </div>
-      )}
-    </div>
-    
-    {/* Toplam */}
-    <div style={{ 
-      color: "#10b981", 
-      fontWeight: "600", 
-      textAlign: "right",
-      padding: "6px 8px"
-    }}>
-      {((line.OrderQty || line.BuyQtyDue || 0) * (line.Price || line.SaleUnitPrice || 0)).toFixed(2)}
-    </div>
-    
-    {/* İşlem - Düzeltilmiş */}
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-      {isEditing && (
-        <button
-          onClick={() => removeOrderLine(index)}
-          disabled={editingOrderLines.length <= 1}
-          style={{
-            background: editingOrderLines.length <= 1 ? "#64748b" : "#ef4444",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            width: "32px",
-            height: "32px",
-            cursor: editingOrderLines.length <= 1 ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: editingOrderLines.length <= 1 ? 0.5 : 1,
-            flexShrink: 0
-          }}
-          title="Satırı Sil"
-        >
-          <i className="fas fa-trash" style={{ fontSize: "0.7rem" }}></i>
-        </button>
-      )}
-    </div>
-  </div>
-))}
+                      {/* Mevcut Sipariş Satırları */}
+                      {editingOrderLines.map((line, index) => {
+                        const quantity = line.OrderQty || line.BuyQtyDue || 0;
+                        const price = line.Price || line.SaleUnitPrice || 0;
+                        const total = quantity * price;
+                        
+                        return (
+                          <div
+                            key={line.id}
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "60px 150px 2fr 100px 100px 120px 60px 100px",
+                              padding: "10px 15px",
+                              borderBottom: "1px solid #334155",
+                              fontSize: "0.85rem",
+                              color: "#f1f5f9",
+                              backgroundColor: index % 2 === 0 ? "rgba(30, 41, 59, 0.5)" : "rgba(30, 41, 59, 0.3)",
+                              alignItems: "center",
+                              gap: "10px"
+                            }}
+                          >
+                            {/* Satır No */}
+                            <div>{line.OrderLine}</div>
+                            
+                            {/* Malzeme */}
+                            <div>
+                              {isEditing ? (
+                                <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                                  <input
+                                    type="text"
+                                    value={line.PartNo}
+                                    onChange={(e) => handleEditingOrderLineChange(index, 'PartNo', e.target.value)}
+                                    style={{
+                                      flex: 1,
+                                      minWidth: 0,
+                                      padding: "6px 8px",
+                                      backgroundColor: "rgba(30, 41, 59, 0.8)",
+                                      border: "1px solid #475569",
+                                      borderRadius: "4px",
+                                      color: "#f1f5f9",
+                                      fontSize: "0.85rem"
+                                    }}
+                                    placeholder="PART001"
+                                  />
+                                  <button
+                                    onClick={() => openInventorySearch(false, index)}
+                                    style={{
+                                      background: "#8b5cf6",
+                                      color: "white",
+                                      border: "none",
+                                      borderRadius: "4px",
+                                      padding: "6px",
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      width: "32px",
+                                      height: "32px",
+                                      flexShrink: 0
+                                    }}
+                                    title="Malzeme Ara"
+                                  >
+                                    <i className="fas fa-search" style={{ fontSize: "0.7rem" }}></i>
+                                  </button>
+                                </div>
+                              ) : (
+                                <div style={{ padding: "6px 8px" }}>{line.PartNo}</div>
+                              )}
+                            </div>
+                            
+                            {/* Açıklama */}
+                            <div>
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={line.CatalogDesc || ''}
+                                  onChange={(e) => handleEditingOrderLineChange(index, 'CatalogDesc', e.target.value)}
+                                  style={{
+                                    width: "100%",
+                                    padding: "6px 8px",
+                                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                                    border: "1px solid #475569",
+                                    borderRadius: "4px",
+                                    color: "#f1f5f9",
+                                    fontSize: "0.85rem"
+                                  }}
+                                  placeholder="Açıklama"
+                                />
+                              ) : (
+                                <div style={{ padding: "6px 8px" }}>{line.CatalogDesc || '-'}</div>
+                              )}
+                            </div>
+                            
+                            {/* Miktar */}
+                            <div>
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  value={quantity}
+                                  onChange={(e) => handleEditingOrderLineChange(index, 'OrderQty', e.target.value)}
+                                  style={{
+                                    width: "100%",
+                                    padding: "6px 8px",
+                                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                                    border: "1px solid #475569",
+                                    borderRadius: "4px",
+                                    color: "#f1f5f9",
+                                    fontSize: "0.85rem"
+                                  }}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              ) : (
+                                <div style={{ padding: "6px 8px", textAlign: "right" }}>
+                                  {quantity.toFixed(2)}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Birim Fiyat */}
+                            <div>
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  value={price}
+                                  onChange={(e) => handleEditingOrderLineChange(index, 'Price', e.target.value)}
+                                  style={{
+                                    width: "100%",
+                                    padding: "6px 8px",
+                                    backgroundColor: "rgba(30, 41, 59, 0.8)",
+                                    border: "1px solid #475569",
+                                    borderRadius: "4px",
+                                    color: "#f1f5f9",
+                                    fontSize: "0.85rem"
+                                  }}
+                                  min="0"
+                                  step="0.01"
+                                />
+                              ) : (
+                                <div style={{ padding: "6px 8px", textAlign: "right" }}>
+                                  {price.toFixed(2)}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Toplam */}
+                            <div style={{ 
+                              color: "#10b981", 
+                              fontWeight: "600", 
+                              textAlign: "right"
+                            }}>
+                              {total.toFixed(2)}
+                            </div>
+                            
+                            {/* İşlem - Düzeltilmiş */}
+                            <div style={{ display: "flex", justifyContent: "center" }}>
+                              {isEditing && (
+                                <button
+                                  onClick={() => removeOrderLine(index)}
+                                  disabled={editingOrderLines.length <= 1}
+                                  style={{
+                                    background: editingOrderLines.length <= 1 ? "#64748b" : "#ef4444",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "4px",
+                                    width: "32px",
+                                    height: "32px",
+                                    cursor: editingOrderLines.length <= 1 ? "not-allowed" : "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    opacity: editingOrderLines.length <= 1 ? 0.5 : 1,
+                                    flexShrink: 0
+                                  }}
+                                  title="Satırı Sil"
+                                >
+                                  <i className="fas fa-trash" style={{ fontSize: "0.7rem" }}></i>
+                                </button>
+                              )}
+                            </div>
+                            
+                            {/* İş Emri Butonu */}
+                            <div style={{ display: "flex", justifyContent: "center" }}>
+                              <button
+                                onClick={() => openShopOrderModal(line)}
+                                style={{
+                                  background: "#10b981",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "4px",
+                                  padding: "6px 12px",
+                                  fontSize: "0.75rem",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  whiteSpace: "nowrap"
+                                }}
+                                title="Bu satır için iş emri oluştur"
+                              >
+                                <i className="fas fa-industry"></i>
+                                <span>İş Emri</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                       
                       {/* Toplam ve Butonlar */}
                       <div style={{
                         display: "grid",
-                        gridTemplateColumns: "60px 120px 2fr 100px 100px 120px 60px",
+                        gridTemplateColumns: "60px 150px 2fr 100px 100px 120px 60px 100px",
                         padding: "12px 15px",
                         backgroundColor: "#1e293b",
                         borderTop: "2px solid #475569",
@@ -3512,7 +4339,7 @@ export default function CustomerOrderPage() {
                         fontWeight: "600",
                         color: "#f1f5f9"
                       }}>
-                        <div style={{ gridColumn: "1 / 5", display: "flex", alignItems: "center" }}>
+                        <div style={{ gridColumn: "1 / 6", display: "flex", alignItems: "center" }}>
                           {isEditing && (
                             <button
                               onClick={addNewOrderLine}
@@ -3534,12 +4361,13 @@ export default function CustomerOrderPage() {
                             </button>
                           )}
                         </div>
-                        <div style={{ gridColumn: "5 / 7", textAlign: "right", paddingRight: "10px" }}>
+                        <div style={{ gridColumn: "6 / 8", textAlign: "right", paddingRight: "10px" }}>
                           GENEL TOPLAM:
                         </div>
                         <div style={{ color: "#10b981", fontSize: "1rem", textAlign: "right", paddingRight: "10px" }}>
                           {calculateOrderLinesTotal().toFixed(2)}
                         </div>
+                        <div></div>
                       </div>
                     </div>
                   ) : (

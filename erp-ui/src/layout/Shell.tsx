@@ -57,6 +57,15 @@ const Shell = () => {
       ]
     },
     {
+      key: "shpord",
+      name: "Üretim",
+      icon: "money-bill-wave",
+      path: "/shpord",
+      children: [
+        { name: "İş Emri", path: "/shpord/shoporder" }
+      ]
+    },
+    {
       key: "fin",
       name: "Finans",
       icon: "money-bill-wave",

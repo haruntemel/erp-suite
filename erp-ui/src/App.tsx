@@ -4,6 +4,7 @@ import AppBase from "./modules/enterp/AppBase";
 import SalesHome from "./modules/sales/SalesHome";
 import InventoryHome from "./modules/invent/InventoryHome";
 import MfgstdHome from "./modules/mfgstd/MfgstdHome";
+import ProductionHome from './modules/shpord/ProductionHome';
 import FinanceHome from "./modules/fin/FinanceHome";
 import Lobby from "./modules/lobby/Lobby";
 
@@ -19,6 +20,7 @@ import SaleOrderLinesPage from './modules/sales/SaleOrderLines';
 import MfgStructures from './modules/mfgstd/MfgStructures';
 import WorkCenter from './modules/mfgstd/WorkCenter';
 import MfgRoutes from './modules/mfgstd/MfgRoutes';
+import Shoporders from './modules/shpord/Shoporders';
 // 🔹 User modülü
 import UsersHome from "./modules/user/UsersHome";
 
@@ -57,8 +59,8 @@ export default function App() {
         <Route path="/invent" element={<InventoryHome />} />
         <Route path="/fin" element={<FinanceHome />} />
         <Route path="/mfgstd" element={<MfgstdHome />} />
+        <Route path="/shpord" element={<ProductionHome />} />
         <Route path="/user" element={<UsersHome />} />
-
         {/* Alt kırılımlar */}
         <Route path="/enterp/company" element={<CompanyPage />} />
         <Route path="/enterp/companysite" element={<CompanySite />} />
@@ -73,7 +75,7 @@ export default function App() {
         <Route path="/mfgstd/mfgroutes" element={<MfgRoutes />} />
         <Route path="/mfgstd/mfgstructures" element={<MfgStructures />} />
         <Route path="/mfgstd/workcenter" element={<WorkCenter />} />
-        
+        <Route path="/shpord/shoporder" element={<Shoporders />} />
       </Route>
     </Routes>
   );
