@@ -489,6 +489,10 @@ public DbSet<ShopOrder> ShopOrders { get; set; }
                     .HasColumnName("note_text")
                     .HasMaxLength(4000);
                     
+                e.Property(x =>x.PaidAmount)
+                    .HasColumnName("paid_amount")
+                    .HasColumnType("numeric(25,2)");
+
                 e.Property(x => x.Rowstate)
                     .HasColumnName("rowstate")
                     .HasMaxLength(4000);

@@ -142,7 +142,10 @@ namespace Erp.Api.Controllers
                     
                 if (updateDto.NoteText != null)
                     order.NoteText = updateDto.NoteText;
-                    
+                
+                 if (updateDto.PaidAmount.HasValue)
+                    order.PaidAmount = updateDto.PaidAmount.Value;
+
                 if (!string.IsNullOrEmpty(updateDto.Rowstate))
                     order.Rowstate = updateDto.Rowstate;
 
@@ -215,6 +218,7 @@ namespace Erp.Api.Controllers
             public string? ShipAddrNo { get; set; }
             public string? InternalPoNo { get; set; }
             public string? NoteText { get; set; }
+            public decimal? PaidAmount { get; set; }
             public string? Rowstate { get; set; }
             public decimal Rowversion { get; set; }
         }

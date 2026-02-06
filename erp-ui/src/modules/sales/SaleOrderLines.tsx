@@ -1,6 +1,40 @@
+// src/modules/sales/SaleOrderLines.tsx
+
 import { useState, useEffect, useCallback } from "react";
 
-// API'den gelen veri yapısı
+// API'den gelen veri yapısı - Sipariş Başlığı
+interface CustomerOrderApiResponse {
+  orderNo: string;
+  company: string;
+  contract: string;
+  customerNo: string;
+  customerPoNo: string | null;
+  salesmanCode: string | null;
+  authorizeCode: string | null;
+  paidAmount: number | null;
+}
+
+// API'den gelen veri yapısı - Müşteri
+interface CustomerApiResponse {
+  customerId: string;
+  name: string;
+  associationNo?: string;
+  corporateForm?: string;
+  country?: string;
+  partyType?: string;
+  category?: string;
+  checkLimit?: string;
+  limitControlType?: string;
+  defaultLanguage?: string;
+  identifierReference?: string;
+  rowversion?: number;
+  rowkey?: string;
+  creationDate?: string;
+  createdBy?: string;
+  changedBy?: string;
+}
+
+// API'den gelen veri yapısı - Sipariş Satırı
 interface CustomerOrderLineApiResponse {
   orderNo: string;
   company: string;
@@ -58,6 +92,10 @@ interface OrderLineView {
   wantedDeliveryDate: string | null;
   rowstate: string;
   rowkey: string;
+  customerPoNo: string;
+  salesmanCode: string;
+  authorizeCode: string;
+  paidAmount: number;
 }
 
 // Sütun tipi
@@ -86,70 +124,158 @@ export default function SaleOrderLinesPage() {
     { key: "orderNo", label: "Sipariş No", width: "120px", align: "left" },
     { key: "customerNo", label: "Müşteri No", width: "100px", align: "left" },
     { key: "customerName", label: "Müşteri Adı", width: "150px", align: "left" },
+    { key: "customerPoNo", label: "Müşteri Sipariş No", width: "120px", align: "left" },
+    { key: "salesmanCode", label: "Satış Personeli", width: "100px", align: "left" },
+    { key: "authorizeCode", label: "Koordinatör", width: "100px", align: "left" },
     { key: "partNo", label: "Malzeme No", width: "120px", align: "left" },
     { key: "catalogDesc", label: "Açıklama", width: "200px", align: "left" },
     { key: "buyQtyDue", label: "Miktar", width: "80px", align: "right" },
     { key: "saleUnitPrice", label: "Birim Fiyat", width: "100px", align: "right" },
     { key: "lineTotal", label: "Toplam", width: "120px", align: "right" },
+    { key: "paidAmount", label: "Ödenen Tutar", width: "100px", align: "right" },
     { key: "dateEntered", label: "Sipariş Tarihi", width: "120px", align: "left" },
     { key: "wantedDeliveryDate", label: "Teslimat Tarihi", width: "120px", align: "left" },
     { key: "rowstate", label: "Durum", width: "100px", align: "center" },
     { key: "actions", label: "İşlemler", width: "80px", align: "center" }
   ];
 
-  // Sipariş satırlarını API'den çek
-  const fetchOrderLines = useCallback(async () => {
+  // Müşterileri çek
+  const fetchCustomers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/customer');
+      
+      if (!response.ok) {
+        throw new Error(`Müşteri API hatası: ${response.status} ${response.statusText}`);
+      }
+      
+      const customersData: CustomerApiResponse[] = await response.json();
+      
+      // Müşterileri Map'e dönüştür (customerId -> CustomerApiResponse)
+      const customersMap = new Map<string, CustomerApiResponse>();
+      customersData.forEach(customer => {
+        // CustomerId kontrol et (büyük/küçük harf duyarlılığı için)
+        const customerId = customer.customerId || 
+                         (customer as any).CustomerId || 
+                         (customer as any).customer_id ||
+                         (customer as any).customerNo;
+        
+        if (customerId && customer.name) {
+          customersMap.set(customerId, {
+            ...customer,
+            customerId: customerId // Standardize et
+          });
+        }
+      });
+      
+      return customersMap;
+      
+    } catch (err) {
+      console.error("Müşteriler çekilirken hata:", err);
+      throw err;
+    }
+  }, []);
+
+  // Sipariş başlıklarını çek
+  const fetchOrders = useCallback(async () => {
+    try {
+      const response = await fetch('/api/customerorder');
+      
+      if (!response.ok) {
+        throw new Error(`Sipariş başlığı API hatası: ${response.status} ${response.statusText}`);
+      }
+      
+      const ordersData: CustomerOrderApiResponse[] = await response.json();
+      
+      // Sipariş başlıklarını Map'e dönüştür (company-orderNo-contract -> CustomerOrderApiResponse)
+      const ordersMap = new Map<string, CustomerOrderApiResponse>();
+      ordersData.forEach(order => {
+        const key = `${order.company}-${order.orderNo}-${order.contract}`;
+        ordersMap.set(key, order);
+      });
+      
+      return ordersMap;
+      
+    } catch (err) {
+      console.error("Sipariş başlıkları çekilirken hata:", err);
+      throw err;
+    }
+  }, []);
+
+  // Tüm verileri çek ve birleştir
+  const fetchAllData = useCallback(async () => {
     try {
       setLoading(true);
-      console.log("🔍 API isteği başlatılıyor: /api/customerorderline/get-all");
       
+      // 1. Önce müşterileri çek
+      const customersMap = await fetchCustomers();
+      
+      // 2. Sipariş başlıklarını çek
+      const ordersMap = await fetchOrders();
+      
+      // 3. Sipariş satırlarını çek
       const response = await fetch('/api/customerorderline/get-all');
       
       if (!response.ok) {
-        throw new Error(`API hatası: ${response.status} ${response.statusText}`);
+        throw new Error(`Sipariş satırı API hatası: ${response.status} ${response.statusText}`);
       }
       
       const apiData: CustomerOrderLineApiResponse[] = await response.json();
-      console.log(`✅ API'den ${apiData.length} satır alındı`);
       
-      // API verisini frontend view formatına çevir
-      const viewData: OrderLineView[] = apiData.map(line => ({
-        orderNo: line.orderNo || "",
-        company: line.company || "",
-        contract: line.contract || "",
-        lineNo: line.lineNo || "",
-        relNo: line.relNo || "",
-        partNo: line.partNo || "-",
-        catalogDesc: line.catalogDesc || line.partNo || "-",
-        customerNo: line.customerNo || "",
-        customerName: line.customerNo, // Geçici olarak customerNo göster
-        buyQtyDue: line.buyQtyDue || line.customerPartBuyQty || 0,
-        saleUnitPrice: line.saleUnitPrice || line.baseSaleUnitPrice || line.unitPriceInclTax || 0,
-        lineTotal: (line.buyQtyDue || 0) * (line.saleUnitPrice || 0),
-        dateEntered: line.dateEntered || new Date().toISOString().split('T')[0],
-        wantedDeliveryDate: line.wantedDeliveryDate,
-        rowstate: line.rowstate || "ACTIVE",
-        rowkey: line.rowkey || `line-${Date.now()}`
-      }));
+      // 4. Verileri birleştir
+      const viewData: OrderLineView[] = [];
+      
+      apiData.forEach((line, index) => {
+        // Sipariş başlık bilgilerini bul
+        const orderKey = `${line.company}-${line.orderNo}-${line.contract}`;
+        const orderInfo = ordersMap.get(orderKey);
+        
+        // Müşteri bilgilerini bul (customerNo ile)
+        const customerNo = line.customerNo || orderInfo?.customerNo || "";
+        const customerInfo = customersMap.get(customerNo);
+        
+        viewData.push({
+          orderNo: line.orderNo || "",
+          company: line.company || "",
+          contract: line.contract || "",
+          lineNo: line.lineNo || "",
+          relNo: line.relNo || "",
+          partNo: line.partNo || "-",
+          catalogDesc: line.catalogDesc || line.partNo || "-",
+          customerNo: customerNo,
+          customerName: customerInfo?.name || customerNo || "-",
+          buyQtyDue: line.buyQtyDue || line.customerPartBuyQty || 0,
+          saleUnitPrice: line.saleUnitPrice || line.baseSaleUnitPrice || line.unitPriceInclTax || 0,
+          lineTotal: (line.buyQtyDue || 0) * (line.saleUnitPrice || 0),
+          dateEntered: line.dateEntered || new Date().toISOString().split('T')[0],
+          wantedDeliveryDate: line.wantedDeliveryDate,
+          rowstate: line.rowstate || "ACTIVE",
+          rowkey: line.rowkey || `line-${Date.now()}-${index}`,
+          // SİPARİŞ BAŞLIK BİLGİLERİ
+          customerPoNo: orderInfo?.customerPoNo || "-",
+          salesmanCode: orderInfo?.salesmanCode || "-",
+          authorizeCode: orderInfo?.authorizeCode || "-",
+          paidAmount: orderInfo?.paidAmount || 0,
+        });
+      });
       
       setOrderLines(viewData);
       setTotalCount(viewData.length);
       setTotalPages(Math.ceil(viewData.length / pageSize));
       setError(null);
-      console.log(`✅ ${viewData.length} satır başarıyla yüklendi`);
       
     } catch (err) {
-      console.error("❌ Veri çekilirken hata:", err);
-      setError(err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu");
+      const errorMessage = err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu";
+      console.error("Veri çekilirken hata:", err);
+      setError(errorMessage);
       setOrderLines([]);
     } finally {
       setLoading(false);
     }
-  }, [pageSize]);
+  }, [pageSize, fetchCustomers, fetchOrders]);
 
   useEffect(() => {
-    fetchOrderLines();
-  }, [fetchOrderLines]);
+    fetchAllData();
+  }, [fetchAllData]);
 
   // Arama ve filtreleme
   const filteredLines = orderLines.filter(line => {
@@ -160,6 +286,9 @@ export default function SaleOrderLinesPage() {
       line.orderNo.toLowerCase().includes(term) ||
       line.customerNo.toLowerCase().includes(term) ||
       line.customerName.toLowerCase().includes(term) ||
+      line.customerPoNo.toLowerCase().includes(term) ||
+      line.salesmanCode.toLowerCase().includes(term) ||
+      line.authorizeCode.toLowerCase().includes(term) ||
       line.partNo.toLowerCase().includes(term) ||
       line.catalogDesc.toLowerCase().includes(term)
     );
@@ -215,42 +344,33 @@ export default function SaleOrderLinesPage() {
     setSelectedRow(selectedRow === rowkey ? null : rowkey);
   };
 
-// Sipariş detayına git - Güncellenmiş ve basitleştirilmiş versiyon
-// CustomerOrderLines.tsx'te goToOrderDetail fonksiyonu
-// Sipariş detayına git - TAM ÇÖZ ÜM
-const goToOrderDetail = useCallback((orderNo: string, company: string, contract: string) => {
-  console.log(`🔍 Sipariş detayına gidiliyor: ${orderNo} (${company}/${contract})`);
-  
-  // 1. localStorage'a kaydet (en güvenilir yöntem)
-  const orderInfo = {
-    company,
-    orderNo,
-    contract,
-    timestamp: Date.now(),
-    source: 'CustomerOrderLines'
-  };
-  
-  try {
-    localStorage.setItem('autoSelectOrder', JSON.stringify(orderInfo));
-    console.log('✅ localStorage\'a kaydedildi:', orderInfo);
-  } catch (err) {
-    console.error('❌ localStorage kayıt hatası:', err);
-  }
-  
-  // 2. URL parametreleri oluştur
-  const params = new URLSearchParams({
-    company: company,
-    orderNo: orderNo,
-    contract: contract,
-    fromCustomerOrderLines: 'true'
-  });
-  
-  const targetUrl = `/sales/orders?${params.toString()}`;
-  
-  // 3. Aynı sekmede yönlendir (EN GÜVENİLİR)
-  window.location.href = targetUrl;
-  
-}, []);
+  // Sipariş detayına git
+  const goToOrderDetail = useCallback((orderNo: string, company: string, contract: string) => {
+    const orderInfo = {
+      company,
+      orderNo,
+      contract,
+      timestamp: Date.now(),
+      source: 'CustomerOrderLines'
+    };
+    
+    try {
+      localStorage.setItem('autoSelectOrder', JSON.stringify(orderInfo));
+    } catch (err) {
+      console.error('localStorage kayıt hatası:', err);
+    }
+    
+    const params = new URLSearchParams({
+      company: company,
+      orderNo: orderNo,
+      contract: contract,
+      fromCustomerOrderLines: 'true'
+    });
+    
+    const targetUrl = `/sales/orders?${params.toString()}`;
+    window.location.href = targetUrl;
+    
+  }, []);
 
   // Sayfa değiştirme
   const handlePageChange = (newPage: number) => {
@@ -272,8 +392,9 @@ const goToOrderDetail = useCallback((orderNo: string, company: string, contract:
     const totals = filteredLines.reduce((acc, line) => {
       acc.totalQty += line.buyQtyDue;
       acc.totalAmount += line.lineTotal;
+      acc.totalPaid += line.paidAmount;
       return acc;
-    }, { totalQty: 0, totalAmount: 0 });
+    }, { totalQty: 0, totalAmount: 0, totalPaid: 0 });
     
     return totals;
   };
@@ -407,7 +528,7 @@ const goToOrderDetail = useCallback((orderNo: string, company: string, contract:
               }}></i>
               <input
                 type="text"
-                placeholder="Sipariş no, müşteri, malzeme ara..."
+                placeholder="Sipariş no, müşteri, PO no, satıcı ara..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -435,7 +556,7 @@ const goToOrderDetail = useCallback((orderNo: string, company: string, contract:
             </div>
             
             <button
-              onClick={() => fetchOrderLines()}
+              onClick={() => fetchAllData()}
               style={{
                 background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                 color: "white",
@@ -509,13 +630,23 @@ const goToOrderDetail = useCallback((orderNo: string, company: string, contract:
           
           <div style={{ textAlign: "center", padding: "12px" }}>
             <div style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "6px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-              <i className="fas fa-chart-line"></i>
-              <span>Ortalama Fiyat</span>
+              <i className="fas fa-money-check"></i>
+              <span>Toplam Ödenen</span>
             </div>
             <div style={{ fontSize: "1.4rem", fontWeight: "700", color: "#8b5cf6" }}>
-              {filteredLines.length > 0 && totals.totalQty > 0 
-                ? (totals.totalAmount / totals.totalQty).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                : "0.00"} TL
+              {totals.totalPaid.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+            </div>
+          </div>
+          
+          <div style={{ textAlign: "center", padding: "12px" }}>
+            <div style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "6px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+              <i className="fas fa-percentage"></i>
+              <span>Ödeme Oranı</span>
+            </div>
+            <div style={{ fontSize: "1.4rem", fontWeight: "700", color: "#3b82f6" }}>
+              {totals.totalAmount > 0 
+                ? `${((totals.totalPaid / totals.totalAmount) * 100).toFixed(1)}%`
+                : "0%"}
             </div>
           </div>
         </div>
@@ -539,7 +670,7 @@ const goToOrderDetail = useCallback((orderNo: string, company: string, contract:
             </div>
           </div>
           <button
-            onClick={() => fetchOrderLines()}
+            onClick={() => fetchAllData()}
             style={{
               marginTop: "12px",
               background: "#ef4444",
@@ -759,6 +890,42 @@ const goToOrderDetail = useCallback((orderNo: string, company: string, contract:
                     {line.customerName}
                   </div>
                   
+                  {/* Customer PO No */}
+                  <div style={{ 
+                    color: "#f59e0b",
+                    fontWeight: "600",
+                    fontFamily: "'Roboto Mono', 'Courier New', monospace",
+                    fontSize: "0.85rem"
+                  }}>
+                    {line.customerPoNo}
+                  </div>
+                  
+                  {/* Satış Personeli */}
+                  <div style={{ 
+                    color: "#10b981",
+                    fontWeight: "600",
+                    fontSize: "0.85rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}>
+                    {line.salesmanCode !== "-" && <i className="fas fa-user-tag" style={{ fontSize: "0.7rem", opacity: 0.7 }}></i>}
+                    {line.salesmanCode}
+                  </div>
+                  
+                  {/* Koordinatör */}
+                  <div style={{ 
+                    color: "#8b5cf6",
+                    fontWeight: "600",
+                    fontSize: "0.85rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}>
+                    {line.authorizeCode !== "-" && <i className="fas fa-key" style={{ fontSize: "0.7rem", opacity: 0.7 }}></i>}
+                    {line.authorizeCode}
+                  </div>
+                  
                   {/* Malzeme No */}
                   <div style={{ 
                     color: "#f59e0b",
@@ -811,6 +978,17 @@ const goToOrderDetail = useCallback((orderNo: string, company: string, contract:
                     fontSize: "1rem"
                   }}>
                     {line.lineTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+                  </div>
+                  
+                  {/* Ödenen Tutar */}
+                  <div style={{ 
+                    textAlign: "right", 
+                    color: line.paidAmount > 0 ? "#10b981" : "#94a3b8", 
+                    fontWeight: "700",
+                    fontFamily: "'Roboto Mono', 'Courier New', monospace",
+                    fontSize: "0.95rem"
+                  }}>
+                    {line.paidAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
                   </div>
                   
                   {/* Sipariş Tarihi */}
@@ -957,51 +1135,7 @@ const goToOrderDetail = useCallback((orderNo: string, company: string, contract:
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigator.clipboard.writeText(line.orderNo);
-                            setSelectedRow(null);
-                            alert(`✅ Sipariş no kopyalandı: ${line.orderNo}`);
-                          }}
-                          style={{
-                            width: "100%",
-                            padding: "14px 18px",
-                            background: "none",
-                            border: "none",
-                            color: "#f1f5f9",
-                            cursor: "pointer",
-                            textAlign: "left",
-                            fontSize: "0.9rem",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "12px",
-                            borderBottom: "1px solid #334155",
-                            transition: "all 0.2s"
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(139, 92, 246, 0.2)"}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                        >
-                          <div style={{
-                            width: "32px",
-                            height: "32px",
-                            backgroundColor: "rgba(139, 92, 246, 0.1)",
-                            borderRadius: "8px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center"
-                          }}>
-                            <i className="fas fa-copy" style={{ color: "#8b5cf6" }}></i>
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: "600" }}>Kopyala</div>
-                            <div style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "2px" }}>
-                              Sipariş numarasını kopyala
-                            </div>
-                          </div>
-                        </button>
-                        
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const lineInfo = `📋 SİPARİŞ SATIR BİLGİLERİ\n━━━━━━━━━━━━━━━━━━━━━━\n📦 Sipariş: ${line.orderNo}\n👤 Müşteri: ${line.customerName} (${line.customerNo})\n🔧 Malzeme: ${line.partNo}\n📝 Açıklama: ${line.catalogDesc}\n📊 Miktar: ${line.buyQtyDue}\n💰 Fiyat: ${line.saleUnitPrice} TL\n💎 Toplam: ${line.lineTotal} TL\n📅 Tarih: ${line.dateEntered}\n🚚 Teslimat: ${line.wantedDeliveryDate || "Belirtilmemiş"}\n📌 Durum: ${line.rowstate}`;
+                            const lineInfo = `📋 SİPARİŞ SATIR BİLGİLERİ\n━━━━━━━━━━━━━━━━━━━━━━\n📦 Sipariş: ${line.orderNo}\n👤 Müşteri: ${line.customerName} (${line.customerNo})\n📝 PO No: ${line.customerPoNo}\n👨‍💼 Satış Personeli: ${line.salesmanCode}\n🔑 Koordinatör: ${line.authorizeCode}\n🔧 Malzeme: ${line.partNo}\n📝 Açıklama: ${line.catalogDesc}\n📊 Miktar: ${line.buyQtyDue}\n💰 Fiyat: ${line.saleUnitPrice} TL\n💎 Toplam: ${line.lineTotal} TL\n💳 Ödenen: ${line.paidAmount} TL\n📅 Tarih: ${line.dateEntered}\n🚚 Teslimat: ${line.wantedDeliveryDate || "Belirtilmemiş"}\n📌 Durum: ${line.rowstate}`;
                             navigator.clipboard.writeText(lineInfo);
                             setSelectedRow(null);
                             alert("✅ Satır bilgileri panoya kopyalandı!");
@@ -1255,7 +1389,7 @@ const goToOrderDetail = useCallback((orderNo: string, company: string, contract:
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <i className="fas fa-info-circle" style={{ color: "#38bdf8" }}></i>
-          <span>Toplam <strong>{totalCount}</strong> sipariş satırı</span>
+          <span>Toplam <strong>{totalCount}</strong> sipariş satırı • <strong>{columns.length - 1}</strong> sütun</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <i className="fas fa-clock" style={{ color: "#10b981" }}></i>

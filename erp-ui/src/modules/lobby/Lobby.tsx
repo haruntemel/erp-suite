@@ -1,239 +1,362 @@
-import { useEffect, useRef } from 'react';
+// src/modules/dashboard/Dashboard.tsx
 
-const Lobby = () => {
-  const retryBtnRef = useRef<HTMLButtonElement>(null);
-  const refreshBtnRef = useRef<HTMLButtonElement>(null);
-  const metricValueRef = useRef<HTMLDivElement>(null);
-  const secondMetricValueRef = useRef<HTMLDivElement>(null);
+import { useState, useEffect } from 'react';
+import { DashboardService, type DashboardStats } from '../../services/dashboard.service';
 
-  const handleTestConnection = () => {
-    const btn = retryBtnRef.current;
-    if (btn) {
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
-      btn.disabled = true;
+const Dashboard = () => {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-      setTimeout(() => {
-        const success = Math.random() > 0.3;
-
-        if (success) {
-          btn.innerHTML = '<i class="fas fa-check"></i> Connected!';
-          btn.style.background = 'linear-gradient(135deg, #10b981 0%, #047857 100%)';
-        } else {
-          btn.innerHTML = '<i class="fas fa-times"></i> Failed';
-          btn.style.background = 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)';
-        }
-
-        setTimeout(() => {
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-          btn.style.background = '';
-        }, 2000);
-      }, 1500);
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await DashboardService.getDashboardStats();
+      setStats(data);
+    } catch (err) {
+      setError('Dashboard yüklenirken hata oluştu');
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRefreshData = () => {
-    const btn = refreshBtnRef.current;
-    if (btn) {
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
-      btn.disabled = true;
-
-      setTimeout(() => {
-        // Update metrics
-        if (metricValueRef.current) {
-          metricValueRef.current.textContent = `${Math.floor(Math.random() * 1000) + 3500} kt`;
-        }
-
-        // Update time
-        const now = new Date();
-        const timeStr = now.getHours() + 'k' + now.getMinutes();
-        if (secondMetricValueRef.current) {
-          secondMetricValueRef.current.textContent = timeStr;
-        }
-
-        btn.innerHTML = '<i class="fas fa-check"></i> Data Updated';
-        btn.style.background = 'linear-gradient(135deg, #10b981 0%, #047857 100%)';
-
-        setTimeout(() => {
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-          btn.style.background = '';
-        }, 1500);
-      }, 1200);
-    }
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadDashboard();
+    setRefreshing(false);
   };
 
   useEffect(() => {
-    const retryBtn = retryBtnRef.current;
-    const refreshBtn = refreshBtnRef.current;
-
-    if (retryBtn) retryBtn.addEventListener('click', handleTestConnection);
-    if (refreshBtn) refreshBtn.addEventListener('click', handleRefreshData);
-
-    return () => {
-      if (retryBtn) retryBtn.removeEventListener('click', handleTestConnection);
-      if (refreshBtn) refreshBtn.removeEventListener('click', handleRefreshData);
-    };
+    loadDashboard();
   }, []);
 
+  // Formatting functions
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('tr-TR', {
+      style: 'currency',
+      currency: 'TRY',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  const formatDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return new Intl.DateTimeFormat('tr-TR', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      }).format(date);
+    } catch {
+      return '-';
+    }
+  };
+
+  if (loading && !stats) {
+    return (
+      <div className="dashboard-loading">
+        <div className="loading-spinner"></div>
+        <p>Dashboard yükleniyor...</p>
+      </div>
+    );
+  }
+
+  if (error && !stats) {
+    return (
+      <div className="dashboard-error">
+        <i className="fas fa-exclamation-triangle"></i>
+        <p>{error}</p>
+        <button onClick={handleRefresh} className="btn btn-retry">
+          <i className="fas fa-sync-alt"></i> Tekrar Dene
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="lobby-content">
-      <div className="dashboard-grid">
-        {/* Backend Connection Test Card */}
-        <div className="card">
-          <div className="card-header">
-            <div className="card-icon">
-              <i className="fas fa-server"></i>
-            </div>
-            <h2 className="card-title">Backend Connection Test</h2>
-          </div>
-
-          <div className="status-message">
-            <strong>DMCX 2020.</strong> Connection established connected to expanding memory.
-          </div>
-
-          <div className="status-message">
-            Any client (both hosts, mobile arrays) per of remotely masks.
-          </div>
-
-          <button className="btn btn-retry" ref={retryBtnRef}>
-            <i className="fas fa-sync-alt"></i>
-            Test Connection
-          </button>
+    <div className="dashboard-container">
+      {/* Header */}
+      <div className="dashboard-header">
+        <div className="header-content">
+          <h1 className="dashboard-title">
+            <i className="fas fa-tachometer-alt"></i> Genel Görünüm - Özet
+          </h1>
+          <p className="dashboard-subtitle">
+            Sistem istatistikleri ve analitik görünüm
+          </p>
         </div>
+        <button 
+          onClick={handleRefresh} 
+          className={`btn-refresh ${refreshing ? 'refreshing' : ''}`}
+          disabled={refreshing}
+        >
+          <i className="fas fa-sync-alt"></i>
+          {refreshing ? 'Güncelleniyor...' : 'Yenile'}
+        </button>
+      </div>
 
-        {/* Data Base Card */}
-        <div className="card">
-          <div className="card-header">
-            <div className="card-icon">
-              <i className="fas fa-database"></i>
-            </div>
-            <h2 className="card-title">Data Base</h2>
+      {/* Top Stats Grid - 4x1 on desktop, 2x2 on tablet, 1x4 on mobile */}
+      <div className="dashboard-top-stats">
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%)' }}>
+            <i className="fas fa-shopping-cart"></i>
           </div>
-
-          <div className="list-item">
-            <div className="list-icon memory">
-              <i className="fas fa-memory"></i>
-            </div>
-            <div>
-              <div>Memory</div>
-              <div className="metric-label">Version: 2.0x</div>
-            </div>
-          </div>
-
-          <div className="list-item">
-            <div className="list-icon flow">
-              <i className="fas fa-stream"></i>
-            </div>
-            <div>
-              <div>Flow Checker</div>
-              <div className="metric-label">List: available spot</div>
-            </div>
+          <div className="stat-info">
+            <h3>Toplam Sipariş</h3>
+            <p className="stat-value">{stats?.totalCustomerOrders || 0}</p>
+            <span className="stat-badge positive">
+              <i className="fas fa-arrow-up"></i> Aktif
+            </span>
           </div>
         </div>
 
-        {/* Axe Monitor Card */}
-        <div className="card">
-          <div className="card-header">
-            <div className="card-icon">
-              <i className="fas fa-desktop"></i>
-            </div>
-            <h2 className="card-title">Axe Monitor</h2>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}>
+            <i className="fas fa-list"></i>
           </div>
-
-          <div className="list-item">
-            <div className="list-icon intel">
-              <i className="fab fa-intel"></i>
-            </div>
-            <div>
-              <div>Intel Core i5G(R)</div>
-              <div className="metric-label">Active X 3.0 (TS)</div>
-            </div>
-          </div>
-
-          <div className="list-item">
-            <div className="list-icon memory">
-              <i className="fas fa-hdd"></i>
-            </div>
-            <div>
-              <div>Disk Status</div>
-              <div className="metric-label">Memory: Version: 2.0x</div>
-            </div>
-          </div>
-
-          <div className="list-item">
-            <div className="list-icon flow">
-              <i className="fas fa-filter"></i>
-            </div>
-            <div>
-              <div>Flow Checker</div>
-              <div className="metric-label">List: available spot</div>
-            </div>
+          <div className="stat-info">
+            <h3>Sipariş Satırları</h3>
+            <p className="stat-value">{stats?.totalOrderLines || 0}</p>
+            <span className="stat-badge info">
+              <i className="fas fa-info-circle"></i> Toplam
+            </span>
           </div>
         </div>
 
-        {/* Axe Allofolder Card */}
-        <div className="card">
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}>
+            <i className="fas fa-industry"></i>
+          </div>
+          <div className="stat-info">
+            <h3>Üretim Emirleri</h3>
+            <p className="stat-value">{stats?.totalShopOrders || 0}</p>
+            <span className="stat-badge warning">
+              <i className="fas fa-tasks"></i> İşlemde
+            </span>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}>
+            <i className="fas fa-money-bill-wave"></i>
+          </div>
+          <div className="stat-info">
+            <h3>Toplam Gelir</h3>
+            <p className="stat-value">{formatCurrency(stats?.totalRevenue || 0)}</p>
+            <span className="stat-badge positive">
+              <i className="fas fa-chart-line"></i> Artış
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Middle Row - 2x2 Grid */}
+      <div className="dashboard-middle">
+        {/* Order Status Chart */}
+        <div className="chart-card">
           <div className="card-header">
-            <div className="card-icon">
-              <i className="fas fa-folder-open"></i>
+            <div className="card-icon" style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}>
+              <i className="fas fa-chart-pie"></i>
             </div>
-            <h2 className="card-title">Axe Allofolder</h2>
+            <h2 className="card-title">Sipariş Durumları</h2>
           </div>
+          <div className="chart-content">
+            {stats?.ordersByStatus.map((item, index) => {
+              const total = stats.totalCustomerOrders || 1;
+              const percentage = ((item.count / total) * 100).toFixed(1);
+              
+              const statusColors: Record<string, string> = {
+                'Planned': '#f59e0b',
+                'Released': '#0ea5e9',
+                'Closed': '#10b981',
+                'Cancelled': '#ef4444',
+                'Unknown': '#64748b'
+              };
 
-          <div className="list-item">
-            <div>
-              <div>Only reads</div>
-              <div className="metric-value" ref={metricValueRef}>3987 kt</div>
-              <div className="metric-label">Storage code(s)</div>
+              return (
+                <div key={index} className="status-item">
+                  <div className="status-info">
+                    <span 
+                      className="status-dot" 
+                      style={{ backgroundColor: statusColors[item.status] }}
+                    ></span>
+                    <span className="status-name">{item.status}</span>
+                    <span className="status-count">{item.count}</span>
+                  </div>
+                  <div className="status-bar-container">
+                    <div 
+                      className="status-bar" 
+                      style={{ 
+                        width: `${percentage}%`,
+                        backgroundColor: statusColors[item.status]
+                      }}
+                    ></div>
+                  </div>
+                  <span className="status-percentage">{percentage}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Status Overview */}
+        <div className="status-overview-card">
+          <div className="card-header">
+            <div className="card-icon" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)' }}>
+              <i className="fas fa-clipboard-list"></i>
             </div>
+            <h2 className="card-title">Durum Özeti</h2>
           </div>
+          <div className="status-grid">
+            <div className="status-item-card pending">
+              <div className="status-icon">
+                <i className="fas fa-clock"></i>
+              </div>
+              <div className="status-content">
+                <h3>Bekleyen</h3>
+                <p className="status-value">{stats?.pendingOrders || 0}</p>
+              </div>
+            </div>
 
-          <div className="list-item">
-            <div>
-              <div>Token identity</div>
-              <div className="metric-value" ref={secondMetricValueRef}>21k42</div>
-              <div className="metric-label">Last updated: 10k4</div>
+            <div className="status-item-card in-progress">
+              <div className="status-icon">
+                <i className="fas fa-spinner"></i>
+              </div>
+              <div className="status-content">
+                <h3>Devam Eden</h3>
+                <p className="status-value">{stats?.inProgressOrders || 0}</p>
+              </div>
+            </div>
+
+            <div className="status-item-card completed">
+              <div className="status-icon">
+                <i className="fas fa-check-circle"></i>
+              </div>
+              <div className="status-content">
+                <h3>Tamamlanan</h3>
+                <p className="status-value">{stats?.completedOrders || 0}</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Debug Info Section */}
-      <div className="debug-info">
-        <div className="card-header">
-          <div className="card-icon">
-            <i className="fas fa-bug"></i>
+      {/* Bottom Row - 2x2 Grid */}
+      <div className="dashboard-bottom">
+        {/* Recent Orders */}
+        <div className="list-card">
+          <div className="card-header">
+            <div className="card-icon" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}>
+              <i className="fas fa-clock"></i>
+            </div>
+            <h2 className="card-title">Son Siparişler</h2>
           </div>
-          <h2 className="card-title">Debug Info</h2>
+          <div className="list-content">
+            {stats?.recentOrders.length === 0 ? (
+              <div className="empty-state">
+                <i className="fas fa-inbox"></i>
+                <p>Henüz sipariş yok</p>
+              </div>
+            ) : (
+              stats?.recentOrders.slice(0, 5).map((order, index) => (
+                <div key={index} className="list-item">
+                  <div className="list-item-icon">
+                    <i className="fas fa-file-invoice"></i>
+                  </div>
+                  <div className="list-item-info">
+                    <h4>#{order.orderNo}</h4>
+                    <p>{order.customerNo}</p>
+                  </div>
+                  <div className="list-item-meta">
+                    <span className="date">{order.dateEntered ? formatDate(order.dateEntered) : '-'}</span>
+                    <span className={`status ${order.status?.toLowerCase()}`}>
+                      {order.status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
-        <table className="debug-table">
-          <tbody>
-            <tr>
-              <td className="debug-label">Name</td>
-              <td><div className="debug-value">/ name</div></td>
-            </tr>
-            <tr>
-              <td className="debug-label">User</td>
-              <td><div className="debug-value">/ status</div></td>
-            </tr>
-            <tr>
-              <td className="debug-label">Backend URL</td>
-              <td><div className="debug-value url-value">http://localhost:1928</div></td>
-            </tr>
-          </tbody>
-        </table>
+        {/* Top Customers */}
+        <div className="list-card">
+          <div className="card-header">
+            <div className="card-icon" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}>
+              <i className="fas fa-users"></i>
+            </div>
+            <h2 className="card-title">Top Müşteriler</h2>
+          </div>
+          <div className="list-content">
+            {stats?.topCustomers.length === 0 ? (
+              <div className="empty-state">
+                <i className="fas fa-user-slash"></i>
+                <p>Müşteri verisi yok</p>
+              </div>
+            ) : (
+              stats?.topCustomers.slice(0, 5).map((customer, index) => (
+                <div key={index} className="list-item">
+                  <div className="customer-rank">
+                    #{index + 1}
+                  </div>
+                  <div className="list-item-info">
+                    <h4>{customer.customer}</h4>
+                    <p>{customer.count} sipariş</p>
+                  </div>
+                  <div className="customer-badge">
+                    <i className="fas fa-star"></i>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
-        <button className="btn" ref={refreshBtnRef} style={{ marginTop: '20px' }}>
-          <i className="fas fa-redo"></i>
-          Refresh All Data
-        </button>
+        {/* Order Trend */}
+        <div className="chart-card full-width">
+          <div className="card-header">
+            <div className="card-icon" style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}>
+              <i className="fas fa-chart-line"></i>
+            </div>
+            <h2 className="card-title">Sipariş Trendi (Son 7 Gün)</h2>
+          </div>
+          <div className="trend-chart">
+            <div className="chart-bars">
+              {stats?.orderTrend.map((item, index) => {
+                const maxCount = Math.max(...(stats?.orderTrend.map(t => t.count) || [1]));
+                const height = (item.count / maxCount) * 100;
+                
+                return (
+                  <div key={index} className="bar-container">
+                    <div 
+                      className="bar" 
+                      style={{ 
+                        height: `${height}%`,
+                        background: 'linear-gradient(to top, #0ea5e9, #38bdf8)'
+                      }}
+                      data-count={item.count}
+                    >
+                      <div className="bar-value">{item.count}</div>
+                    </div>
+                    <span className="bar-label">
+                      {new Date(item.date).toLocaleDateString('tr-TR', { 
+                        day: 'numeric', 
+                        month: 'short' 
+                      })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
-export default Lobby;
+export default Dashboard;

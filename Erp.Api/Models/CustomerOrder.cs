@@ -30,6 +30,7 @@ namespace Erp.Api.Models
         public string? ShipAddrNo { get; set; }
         public string? InternalPoNo { get; set; }
         public string? NoteText { get; set; }
+        public decimal? PaidAmount { get; set; }
         public string? Rowstate { get; set; } // Objstate yerine Rowstate
         
         // Sistem alanları

@@ -31,11 +31,14 @@ interface CustomerOrderApiResponse {
   shipAddrNo?: string | null;
   internalPoNo?: string | null;
   noteText?: string | null;
+  paidAmount?: number;
   rowstate?: string | null;
   createdBy: string;
   rowversion: number;
   rowkey: string;
 }
+
+
 
 // Frontend'de kullanacağımız interface (PascalCase)
 interface CustomerOrder {
@@ -60,6 +63,7 @@ interface CustomerOrder {
   ShipAddrNo?: string;
   InternalPoNo?: string;
   NoteText?: string;
+  PaidAmount?:number;
   Rowstate?: string;
   CreatedBy: string;
   Rowversion: number;
@@ -159,6 +163,7 @@ interface CustomerOrderUpdateDto {
   orderId?: string | null;
   authorizeCode?: string | null;
   salesmanCode?: string | null;
+  paidAmount?: number;
   billAddrNo?: string | null;
   shipAddrNo?: string | null;
   internalPoNo?: string | null;
@@ -220,6 +225,7 @@ interface CustomerOrderCreateDto {
   shipAddrNo?: string;
   internalPoNo?: string;
   noteText?: string;
+  paidAmount?: number;
   createdBy: string;
   rowstate: string;
   rowversion: number;
@@ -482,6 +488,7 @@ export default function CustomerOrderPage() {
           ShipAddrNo: apiOrder.shipAddrNo || undefined,
           InternalPoNo: apiOrder.internalPoNo || undefined,
           NoteText: apiOrder.noteText || undefined,
+          PaidAmount: apiOrder.paidAmount || 0,
           Rowstate: apiOrder.rowstate || "ACTIVE",
           CreatedBy: apiOrder.createdBy || "admin",
           Rowversion: apiOrder.rowversion || 1,
@@ -647,6 +654,7 @@ export default function CustomerOrderPage() {
           ShipAddrNo: orderData.shipAddrNo || undefined,
           InternalPoNo: orderData.internalPoNo || undefined,
           NoteText: orderData.noteText || undefined,
+          PaidAmount: orderData.paidAmount || 0,
           Rowstate: orderData.rowstate || "ACTIVE",
           CreatedBy: orderData.createdBy || "admin",
           Rowversion: orderData.rowversion || 1,
@@ -1308,7 +1316,10 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
         dateEntered: editingOrder.DateEntered,
         wantedDeliveryDate: editingOrder.WantedDeliveryDate || null,
         currencyCode: editingOrder.CurrencyCode || null,
+        authorizeCode: editingOrder.AuthorizeCode || null,
+        salesmanCode: editingOrder.SalesmanCode || null,
         noteText: editingOrder.NoteText || null,
+        paidAmount: editingOrder.PaidAmount,
         rowstate: editingOrder.Rowstate || "ACTIVE",
         rowversion: selectedOrder.Rowversion
       };
@@ -1353,6 +1364,7 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
           InternalPoNo: updatedOrderApi.internalPoNo || undefined,
           NoteText: updatedOrderApi.noteText || undefined,
           Rowstate: updatedOrderApi.rowstate || "ACTIVE",
+          PaidAmount: updatedOrderApi.paidAmount,
           CreatedBy: updatedOrderApi.createdBy,
           Rowversion: updatedOrderApi.rowversion,
           Rowkey: updatedOrderApi.rowkey
@@ -1703,6 +1715,7 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
         ShipAddrNo: savedOrder.shipAddrNo || undefined,
         InternalPoNo: savedOrder.internalPoNo || undefined,
         NoteText: savedOrder.noteText || undefined,
+        PaidAmount: savedOrder.paidAmount || 0,
         Rowstate: savedOrder.rowstate || "ACTIVE",
         CreatedBy: savedOrder.createdBy || "admin",
         Rowversion: savedOrder.rowversion || 1,
@@ -3668,6 +3681,7 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
                   </span>
                 </div>
               )}
+              
             </div>
           </div>
         </div>
@@ -4034,6 +4048,70 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
                   </div>
                 )}
               </div>
+              {/* koordinatör */}
+              <div>
+                <label style={labelStyle}>Koordinatör</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editingOrder.AuthorizeCode || ''}
+                    onChange={(e) => handleEditingOrderChange('AuthorizeCode', e.target.value || undefined)}
+                    style={inputStyle}
+                  />
+                ) : (
+                  <div style={{ 
+                    padding: "8px", 
+                    backgroundColor: "rgba(30, 41, 59, 0.5)",
+                    borderRadius: "4px",
+                    color: "#f1f5f9"
+                  }}>
+                    {editingOrder.AuthorizeCode || '-'}
+                  </div>
+                )}
+              </div>
+               {/* satış per */}
+              <div>
+                <label style={labelStyle}>Satış Personeli</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editingOrder.SalesmanCode || ''}
+                    onChange={(e) => handleEditingOrderChange('SalesmanCode', e.target.value || undefined)}
+                    style={inputStyle}
+                  />
+                ) : (
+                  <div style={{ 
+                    padding: "8px", 
+                    backgroundColor: "rgba(30, 41, 59, 0.5)",
+                    borderRadius: "4px",
+                    color: "#f1f5f9"
+                  }}>
+                    {editingOrder.SalesmanCode || '-'}
+                  </div>
+                )}
+              </div>
+{/* PaidAmount */}
+              <div>
+                <label style={labelStyle}>Ödenen Tutar</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editingOrder.PaidAmount || ''}
+                    onChange={(e) => handleEditingOrderChange('PaidAmount', e.target.value || undefined)}
+                    style={inputStyle}
+                  />
+                ) : (
+                  <div style={{ 
+                    padding: "8px", 
+                    backgroundColor: "rgba(30, 41, 59, 0.5)",
+                    borderRadius: "4px",
+                    color: "#f1f5f9"
+                  }}>
+                    {editingOrder.PaidAmount || '-'}
+                  </div>
+                )}
+              </div>
+
               
               {/* Notlar */}
               <div style={{ gridColumn: "1 / -1" }}>

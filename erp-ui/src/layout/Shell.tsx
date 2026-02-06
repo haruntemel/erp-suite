@@ -62,7 +62,8 @@ const Shell = () => {
       icon: "money-bill-wave",
       path: "/shpord",
       children: [
-        { name: "İş Emri", path: "/shpord/shoporder" }
+        { name: "İş Emri", path: "/shpord/shoporder" },
+        { name: "Atölye Tezgahı", path: "/shpord/workshopstation" }
       ]
     },
     {

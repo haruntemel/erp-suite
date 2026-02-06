@@ -21,6 +21,7 @@ import MfgStructures from './modules/mfgstd/MfgStructures';
 import WorkCenter from './modules/mfgstd/WorkCenter';
 import MfgRoutes from './modules/mfgstd/MfgRoutes';
 import Shoporders from './modules/shpord/Shoporders';
+import Workshopstation from './modules/shpord/Workshopstation';
 // 🔹 User modülü
 import UsersHome from "./modules/user/UsersHome";
 
@@ -76,6 +77,8 @@ export default function App() {
         <Route path="/mfgstd/mfgstructures" element={<MfgStructures />} />
         <Route path="/mfgstd/workcenter" element={<WorkCenter />} />
         <Route path="/shpord/shoporder" element={<Shoporders />} />
+<Route path="/shpord/workshopstation" element={<Workshopstation />} />
+        
       </Route>
     </Routes>
   );
