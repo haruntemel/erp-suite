@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   # =============================================
   # 1) DATABASE - PostgreSQL
@@ -12,7 +13,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5432:5432"       # Host:Container -> PgAdmin ile bağlanmak için
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d erp_db"]
@@ -29,34 +30,37 @@ services:
       dockerfile: Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      # Container'da 0.0.0.0:80'de dinle
       ASPNETCORE_URLS: "http://0.0.0.0:80"
+      # DB connection -> "db" servis adı kullanılmalı
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=erp_db;Username=postgres;Password=Ifserp12/*;Pooling=true;"
+      # JWT ayarları burada da tanımlı -> appsettings.json override edilir
       Jwt__Key: "ThisIsA32CharacterLongSecretKeyForJWT!!1234567890"
       Jwt__Issuer: "erp-api"
       Jwt__Audience: "erp-client"
       Jwt__ExpireMinutes: "60"
-    expose:
-      - "80"
+    ports:
+      - "5000:80"         # Host:5000 -> Container:80
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_healthy   # DB hazır olana kadar bekle
     restart: unless-stopped
 
   # =============================================
-  # 3) FRONTEND - React + Nginx
+  # 3) FRONTEND - React
   # =============================================
   frontend:
     build:
       context: ./erp-ui
       dockerfile: Dockerfile
     ports:
-      - "80:80"          # HTTP için
-      - "443:443"        # HTTPS için (SSL eklendiğinde)
-    volumes:
-      - ./erp-ui/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - "3000:80"         # Host:3000 -> Container:80 (nginx)
     depends_on:
       - backend
     restart: unless-stopped
+    # Not: REACT_APP_API_URL burada tanımlamak ÇALIŞMAZ
+    # Çünkü create-react-app env var'ları BUILD zamanında embed eder
+    # Runtime'da değiştirilemez. nginx.conf proxy ile çözüldü.
 
 volumes:
   postgres_data:
