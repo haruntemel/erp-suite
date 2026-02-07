@@ -37,13 +37,36 @@ interface CustomerUpdateDto {
   rowversion?: Date;
 }
 
+interface CustomerCreateDto {
+  customerId: string;
+  name: string;
+  associationNo?: string;
+  corporateForm?: string;
+  country?: string;
+  partyType?: string;
+  category?: string;
+  checkLimit?: string;
+  limitControlType?: string;
+  defaultLanguage?: string;
+  identifierReference?: string;
+  createdBy: string;
+  rowversion: number;
+  rowkey: string;
+}
+
 // GeneralTab bileşeni
 const GeneralTab = ({ 
   selectedCustomer, 
-  onFormDataChange 
+  onFormDataChange,
+  isNewCustomerMode,
+  newCustomerFormData,
+  onNewCustomerFormDataChange
 }: { 
   selectedCustomer: Customer | null;
   onFormDataChange?: (formData: any) => void;
+  isNewCustomerMode?: boolean;
+  newCustomerFormData?: any;
+  onNewCustomerFormDataChange?: (formData: any) => void;
 }) => {
   const [formData, setFormData] = useState({
     default_language: selectedCustomer?.default_language || "tr",
@@ -58,7 +81,7 @@ const GeneralTab = ({
 
   // Seçili müşteri değiştiğinde formData'yı güncelle
   useEffect(() => {
-    if (selectedCustomer) {
+    if (selectedCustomer && !isNewCustomerMode) {
       const newFormData = {
         default_language: selectedCustomer.default_language || "tr",
         corporate_form: selectedCustomer.corporate_form || "",
@@ -74,20 +97,31 @@ const GeneralTab = ({
         onFormDataChange(newFormData);
       }
     }
-  }, [selectedCustomer, onFormDataChange]);
+  }, [selectedCustomer, onFormDataChange, isNewCustomerMode]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    const newFormData = {
-      ...formData,
-      [name]: value
-    };
-    setFormData(newFormData);
     
-    if (onFormDataChange) {
-      onFormDataChange(newFormData);
+    if (isNewCustomerMode && onNewCustomerFormDataChange) {
+      const newFormData = {
+        ...newCustomerFormData,
+        [name]: value
+      };
+      onNewCustomerFormDataChange(newFormData);
+    } else {
+      const newFormData = {
+        ...formData,
+        [name]: value
+      };
+      setFormData(newFormData);
+      
+      if (onFormDataChange) {
+        onFormDataChange(newFormData);
+      }
     }
   };
+
+  const displayData = isNewCustomerMode ? newCustomerFormData : formData;
 
   return (
     <div style={{ padding: "15px 0", minHeight: "250px" }}>
@@ -96,7 +130,7 @@ const GeneralTab = ({
         gridTemplateColumns: "1fr", 
         gap: "15px" 
       }}>
-        {selectedCustomer ? (
+        {selectedCustomer || isNewCustomerMode ? (
           <>
             {/* İlk Satır */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
@@ -104,7 +138,7 @@ const GeneralTab = ({
                 <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Default Language</label>
                 <select
                   name="default_language"
-                  value={formData.default_language}
+                  value={displayData?.default_language || "tr"}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -127,7 +161,7 @@ const GeneralTab = ({
                 <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Corporate Form</label>
                 <select
                   name="corporate_form"
-                  value={formData.corporate_form}
+                  value={displayData?.corporate_form || ""}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -152,7 +186,7 @@ const GeneralTab = ({
                 <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Party Type</label>
                 <select
                   name="party_type"
-                  value={formData.party_type}
+                  value={displayData?.party_type || ""}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -178,7 +212,7 @@ const GeneralTab = ({
                 <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Country</label>
                 <select
                   name="country"
-                  value={formData.country}
+                  value={displayData?.country || "TR"}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -207,7 +241,7 @@ const GeneralTab = ({
                 <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Category</label>
                 <select
                   name="category"
-                  value={formData.category}
+                  value={displayData?.category || ""}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -230,7 +264,7 @@ const GeneralTab = ({
                 <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Check Limit</label>
                 <select
                   name="check_limit"
-                  value={formData.check_limit}
+                  value={displayData?.check_limit || ""}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -255,7 +289,7 @@ const GeneralTab = ({
                 <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Limit Control Type</label>
                 <select
                   name="limit_control_type"
-                  value={formData.limit_control_type}
+                  value={displayData?.limit_control_type || ""}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -278,7 +312,7 @@ const GeneralTab = ({
                 <input
                   type="text"
                   name="identifier_reference"
-                  value={formData.identifier_reference}
+                  value={displayData?.identifier_reference || ""}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -288,7 +322,7 @@ const GeneralTab = ({
                     color: "#f1f5f9",
                     fontSize: "0.9rem"
                   }}
-                  placeholder="Vergi no, TC kimlik no, vb."
+                  placeholder=""
                 />
               </div>
               {/* Boş sütun - denge için */}
@@ -307,7 +341,7 @@ const GeneralTab = ({
             alignItems: "center"
           }}>
             <i className="fas fa-users" style={{ fontSize: "2.5rem", marginBottom: "10px" }}></i>
-            <p>Düzenlemek için bir müşteri seçin</p>
+            <p>Düzenlemek için bir müşteri seçin veya yeni müşteri eklemek için 'Yeni Ekle' butonuna tıklayın</p>
           </div>
         )}
       </div>
@@ -316,10 +350,10 @@ const GeneralTab = ({
 };
 
 // AddressTab bileşeni
-const AddressTab = ({ selectedCustomer }: { selectedCustomer: Customer | null }) => {
+const AddressTab = ({ selectedCustomer, isNewCustomerMode }: { selectedCustomer: Customer | null; isNewCustomerMode?: boolean }) => {
   return (
     <div style={{ padding: "15px 0", minHeight: "250px" }}>
-      {selectedCustomer ? (
+      {selectedCustomer || isNewCustomerMode ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Adres</label>
@@ -379,7 +413,7 @@ const AddressTab = ({ selectedCustomer }: { selectedCustomer: Customer | null })
           alignItems: "center"
         }}>
           <i className="fas fa-map-marker-alt" style={{ fontSize: "2.5rem", marginBottom: "10px" }}></i>
-          <p>Adres bilgilerini görmek için bir müşteri seçin</p>
+          <p>Adres bilgilerini görmek için bir müşteri seçin veya yeni müşteri eklemek için 'Yeni Ekle' butonuna tıklayın</p>
         </div>
       )}
     </div>
@@ -387,10 +421,10 @@ const AddressTab = ({ selectedCustomer }: { selectedCustomer: Customer | null })
 };
 
 // ContactTab bileşeni
-const ContactTab = ({ selectedCustomer }: { selectedCustomer: Customer | null }) => {
+const ContactTab = ({ selectedCustomer, isNewCustomerMode }: { selectedCustomer: Customer | null; isNewCustomerMode?: boolean }) => {
   return (
     <div style={{ padding: "15px 0", minHeight: "250px" }}>
-      {selectedCustomer ? (
+      {selectedCustomer || isNewCustomerMode ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Telefon</label>
@@ -450,7 +484,7 @@ const ContactTab = ({ selectedCustomer }: { selectedCustomer: Customer | null })
           alignItems: "center"
         }}>
           <i className="fas fa-address-book" style={{ fontSize: "2.5rem", marginBottom: "10px" }}></i>
-          <p>İletişim bilgilerini görmek için bir müşteri seçin</p>
+          <p>İletişim bilgilerini görmek için bir müşteri seçin veya yeni müşteri eklemek için 'Yeni Ekle' butonuna tıklayın</p>
         </div>
       )}
     </div>
@@ -465,6 +499,9 @@ export default function CustomerPage() {
   // SearchList'ten seçilen müşteri state'i
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSearchListVisible, setIsSearchListVisible] = useState(false);
+  
+  // Yeni müşteri ekleme modu
+  const [isNewCustomerMode, setIsNewCustomerMode] = useState(false);
 
   // PostgreSQL'den gelen müşteri verileri
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -473,6 +510,18 @@ export default function CustomerPage() {
 
   // GeneralTab form verileri
   const [generalTabFormData, setGeneralTabFormData] = useState<any>(null);
+  
+  // Yeni müşteri form verileri
+  const [newCustomerFormData, setNewCustomerFormData] = useState({
+    default_language: "tr",
+    corporate_form: "",
+    country: "TR",
+    party_type: "",
+    category: "",
+    check_limit: "",
+    limit_control_type: "",
+    identifier_reference: ""
+  });
 
   // Düzenlenen müşteri bilgileri
   const [editingCustomerData, setEditingCustomerData] = useState({
@@ -487,14 +536,14 @@ export default function CustomerPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedCustomer) {
+    if (selectedCustomer && !isNewCustomerMode) {
       setEditingCustomerData({
         customer_id: selectedCustomer.customer_id,
         name: selectedCustomer.name,
         association_no: selectedCustomer.association_no || ""
       });
     }
-  }, [selectedCustomer]);
+  }, [selectedCustomer, isNewCustomerMode]);
 
   const fetchCustomers = async () => {
     try {
@@ -557,11 +606,140 @@ export default function CustomerPage() {
         name: selected.name,
         association_no: selected.association_no || ""
       });
+      setIsNewCustomerMode(false);
     }
   };
 
   const handleToggleSearchList = () => {
     setIsSearchListVisible(!isSearchListVisible);
+  };
+
+  // Yeni müşteri ekleme işlemi
+  const handleAddNewCustomer = () => {
+    setIsNewCustomerMode(true);
+    setSelectedCustomer(null);
+    setEditingCustomerData({
+      customer_id: "",
+      name: "",
+      association_no: ""
+    });
+    setNewCustomerFormData({
+      default_language: "tr",
+      corporate_form: "",
+      country: "TR",
+      party_type: "",
+      category: "",
+      check_limit: "",
+      limit_control_type: "",
+      identifier_reference: ""
+    });
+  };
+
+  // Yeni müşteriyi kaydetme
+  const handleSaveNewCustomer = async () => {
+    // Validasyon
+    if (!editingCustomerData.customer_id.trim()) {
+      alert("Müşteri Kodu alanı zorunludur!");
+      return;
+    }
+    
+    if (!editingCustomerData.name.trim()) {
+      alert("Müşteri Adı alanı zorunludur!");
+      return;
+    }
+
+    try {
+      const newCustomer: CustomerCreateDto = {
+        customerId: editingCustomerData.customer_id,
+        name: editingCustomerData.name,
+        associationNo: editingCustomerData.association_no || undefined,
+        corporateForm: newCustomerFormData.corporate_form || undefined,
+        country: newCustomerFormData.country,
+        partyType: newCustomerFormData.party_type || undefined,
+        category: newCustomerFormData.category || undefined,
+        checkLimit: newCustomerFormData.check_limit || undefined,
+        limitControlType: newCustomerFormData.limit_control_type || undefined,
+        defaultLanguage: newCustomerFormData.default_language,
+        identifierReference: newCustomerFormData.identifier_reference || undefined,
+        createdBy: "admin",
+        rowversion: 1,
+        rowkey: `customer_${Date.now()}`
+      };
+
+      console.log("Gönderilen müşteri verisi:", newCustomer);
+
+      const response = await fetch('/api/customer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newCustomer),
+      });
+
+      if (response.ok) {
+        const createdCustomer = await response.json();
+        await fetchCustomers();
+        
+        // Yeni eklenen müşteriyi seç
+        const newCustomerData: Customer = {
+          id: customers.length + 1,
+          customer_id: createdCustomer.customerId || createdCustomer.customer_id,
+          name: createdCustomer.name,
+          association_no: createdCustomer.associationNo,
+          corporate_form: createdCustomer.corporateForm || "",
+          country: createdCustomer.country || "TR",
+          party_type: createdCustomer.partyType || "",
+          category: createdCustomer.category || "",
+          check_limit: createdCustomer.checkLimit || "",
+          limit_control_type: createdCustomer.limitControlType || "",
+          default_language: createdCustomer.defaultLanguage || "tr",
+          created_by: createdCustomer.createdBy || "admin",
+          changed_by: createdCustomer.changedBy || "",
+          creation_date: new Date().toISOString(),
+          identifier_reference: createdCustomer.identifierReference || "",
+          rowversion: createdCustomer.rowversion || new Date(),
+          rowkey: createdCustomer.rowkey || "",
+          rowtype: createdCustomer.rowtype || ""
+        };
+        
+        setSelectedCustomer(newCustomerData);
+        setIsNewCustomerMode(false);
+        alert("Yeni müşteri başarıyla eklendi!");
+      } else {
+        let errorMessage = "Müşteri ekleme işlemi başarısız oldu";
+        
+        try {
+          const errorData = await response.json();
+          console.error("API hata detayı:", errorData);
+          
+          // Validation errors varsa göster
+          if (errorData.errors) {
+            const validationErrors = Object.values(errorData.errors).flat().join(', ');
+            errorMessage = `Validasyon hataları: ${validationErrors}`;
+          } else if (errorData.title || errorData.detail) {
+            errorMessage = `${errorData.title || 'Hata'}: ${errorData.detail || 'Bilinmeyen hata'}`;
+          }
+        } catch (parseError) {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+    } catch (err) {
+      console.error("Yeni müşteri eklenirken hata:", err);
+      alert(err instanceof Error ? err.message : "Yeni müşteri eklenirken bir hata oluştu!");
+    }
+  };
+
+  // Yeni müşteri eklemeyi iptal et
+  const handleCancelNewCustomer = () => {
+    setIsNewCustomerMode(false);
+    setSelectedCustomer(null);
+    setEditingCustomerData({
+      customer_id: "",
+      name: "",
+      association_no: ""
+    });
   };
 
   // Müşteri silme
@@ -614,15 +792,15 @@ export default function CustomerPage() {
     try {
       const updateDto: CustomerUpdateDto = {
         name: editingCustomerData.name,
-        associationNo: editingCustomerData.association_no,
-        corporateForm: selectedCustomer.corporate_form,
-        country: selectedCustomer.country,
-        partyType: selectedCustomer.party_type,
-        category: selectedCustomer.category,
-        checkLimit: selectedCustomer.check_limit,
-        limitControlType: selectedCustomer.limit_control_type,
-        defaultLanguage: selectedCustomer.default_language,
-        identifierReference: selectedCustomer.identifier_reference,
+        associationNo: editingCustomerData.association_no || undefined,
+        corporateForm: generalTabFormData?.corporate_form || selectedCustomer.corporate_form || undefined,
+        country: generalTabFormData?.country || selectedCustomer.country,
+        partyType: generalTabFormData?.party_type || selectedCustomer.party_type || undefined,
+        category: generalTabFormData?.category || selectedCustomer.category || undefined,
+        checkLimit: generalTabFormData?.check_limit || selectedCustomer.check_limit || undefined,
+        limitControlType: generalTabFormData?.limit_control_type || selectedCustomer.limit_control_type || undefined,
+        defaultLanguage: generalTabFormData?.default_language || selectedCustomer.default_language,
+        identifierReference: generalTabFormData?.identifier_reference || selectedCustomer.identifier_reference || undefined,
         rowversion: selectedCustomer.rowversion
       };
 
@@ -658,8 +836,14 @@ export default function CustomerPage() {
     }
   };
 
-  // Tüm değişiklikleri kaydet (hem GeneralTab hem customer fields)
+  // Tüm değişiklikleri kaydet
   const handleSaveAll = async () => {
+    if (isNewCustomerMode) {
+      // Yeni müşteri ekleme modundaysa yeni müşteriyi kaydet
+      await handleSaveNewCustomer();
+      return;
+    }
+
     if (!selectedCustomer) {
       alert("Lütfen önce bir müşteri seçin!");
       return;
@@ -669,17 +853,19 @@ export default function CustomerPage() {
       // Customer fields için updateDto
       const customerUpdateDto: CustomerUpdateDto = {
         name: editingCustomerData.name,
-        associationNo: editingCustomerData.association_no,
-        corporateForm: generalTabFormData?.corporate_form || selectedCustomer.corporate_form,
+        associationNo: editingCustomerData.association_no || undefined,
+        corporateForm: generalTabFormData?.corporate_form || selectedCustomer.corporate_form || undefined,
         country: generalTabFormData?.country || selectedCustomer.country,
-        partyType: generalTabFormData?.party_type || selectedCustomer.party_type,
-        category: generalTabFormData?.category || selectedCustomer.category,
-        checkLimit: generalTabFormData?.check_limit || selectedCustomer.check_limit,
-        limitControlType: generalTabFormData?.limit_control_type || selectedCustomer.limit_control_type,
+        partyType: generalTabFormData?.party_type || selectedCustomer.party_type || undefined,
+        category: generalTabFormData?.category || selectedCustomer.category || undefined,
+        checkLimit: generalTabFormData?.check_limit || selectedCustomer.check_limit || undefined,
+        limitControlType: generalTabFormData?.limit_control_type || selectedCustomer.limit_control_type || undefined,
         defaultLanguage: generalTabFormData?.default_language || selectedCustomer.default_language,
-        identifierReference: generalTabFormData?.identifier_reference || selectedCustomer.identifier_reference,
+        identifierReference: generalTabFormData?.identifier_reference || selectedCustomer.identifier_reference || undefined,
         rowversion: selectedCustomer.rowversion
       };
+
+      console.log("Güncellenen müşteri verisi:", customerUpdateDto);
 
       const response = await fetch(`/api/customer/${editingCustomerData.customer_id}`, {
         method: 'PUT',
@@ -854,6 +1040,28 @@ export default function CustomerPage() {
               flexWrap: "wrap",
               justifyContent: "flex-end" 
             }}>
+              {/* Yeni Ekle Butonu */}
+              <button
+                onClick={handleAddNewCustomer}
+                style={{
+                  background: "#059669",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "8px 12px",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  transition: "all 0.3s",
+                  flexShrink: 0
+                }}
+              >
+                <i className="fas fa-plus"></i>
+                <span>Yeni Ekle</span>
+              </button>
+              
               {/* SearchList toggle butonu */}
               <button
                 onClick={handleToggleSearchList}
@@ -892,9 +1100,9 @@ export default function CustomerPage() {
               ) : (
                 <button
                   onClick={handleSaveAll}
-                  disabled={!selectedCustomer}
+                  disabled={!selectedCustomer && !isNewCustomerMode}
                   style={{
-                    background: selectedCustomer 
+                    background: (selectedCustomer || isNewCustomerMode)
                       ? "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)" 
                       : "#64748b",
                     color: "white",
@@ -902,16 +1110,40 @@ export default function CustomerPage() {
                     borderRadius: "6px",
                     padding: "8px 15px",
                     fontSize: "0.85rem",
-                    cursor: selectedCustomer ? "pointer" : "not-allowed",
+                    cursor: (selectedCustomer || isNewCustomerMode) ? "pointer" : "not-allowed",
                     display: "flex",
                     alignItems: "center",
                     gap: "6px",
                     flexShrink: 0,
-                    opacity: selectedCustomer ? 1 : 0.6
+                    opacity: (selectedCustomer || isNewCustomerMode) ? 1 : 0.6
                   }}
                 >
                   <i className="fas fa-save"></i>
-                  <span>Kaydet</span>
+                  <span>{isNewCustomerMode ? "Yeni Müşteriyi Kaydet" : "Kaydet"}</span>
+                </button>
+              )}
+
+              {/* Yeni müşteri modunda iptal butonu */}
+              {isNewCustomerMode && (
+                <button
+                  onClick={handleCancelNewCustomer}
+                  style={{
+                    background: "#dc2626",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "8px 12px",
+                    fontSize: "0.8rem",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    transition: "all 0.3s",
+                    flexShrink: 0
+                  }}
+                >
+                  <i className="fas fa-times"></i>
+                  <span>İptal</span>
                 </button>
               )}
             </div>
@@ -924,7 +1156,7 @@ export default function CustomerPage() {
             padding: "12px",
             backgroundColor: "rgba(30, 41, 59, 0.5)",
             borderRadius: "6px",
-            borderLeft: selectedCustomer ? "3px solid #10b981" : "3px solid #38bdf8",
+            borderLeft: isNewCustomerMode ? "3px solid #059669" : selectedCustomer ? "3px solid #10b981" : "3px solid #38bdf8",
             fontSize: "0.85rem"
           }}>
             <div style={{ 
@@ -941,14 +1173,33 @@ export default function CustomerPage() {
                 ) : error ? (
                   <span style={{ color: "#ef4444" }}>Hata: {error}</span>
                 ) : customers.length === 0 ? (
-                  <span>Veritabanında müşteri bulunamadı.</span>
+                  <span>Veritabanında müşteri bulunamadı. Yeni müşteri eklemek için "Yeni Ekle" butonuna tıklayın.</span>
+                ) : isNewCustomerMode ? (
+                  <span style={{ color: "#059669", fontWeight: "600" }}>
+                    <i className="fas fa-plus-circle" style={{ marginRight: "8px" }}></i>
+                    Yeni müşteri ekliyorsunuz. Lütfen gerekli alanları doldurun.
+                  </span>
                 ) : selectedCustomer ? (
                   `"${selectedCustomer.customer_id} - ${selectedCustomer.name}" müşterisinin bilgilerini düzenleyin.`
                 ) : (
-                  "Düzenlemek için soldaki listeden bir müşteri seçin."
+                  "Düzenlemek için soldaki listeden bir müşteri seçin veya yeni müşteri eklemek için 'Yeni Ekle' butonuna tıklayın."
                 )}
               </div>
-              {selectedCustomer && (
+              {isNewCustomerMode ? (
+                <div style={{ 
+                  backgroundColor: "rgba(5, 150, 105, 0.2)", 
+                  padding: "4px 8px", 
+                  borderRadius: "4px",
+                  fontSize: "0.8rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  flexShrink: 0
+                }}>
+                  <i className="fas fa-plus-circle" style={{ color: "#059669" }}></i>
+                  <span>Yeni Müşteri Ekle</span>
+                </div>
+              ) : selectedCustomer && (
                 <div style={{ 
                   backgroundColor: "rgba(16, 185, 129, 0.2)", 
                   padding: "4px 8px", 
@@ -989,7 +1240,7 @@ export default function CustomerPage() {
             gap: "10px"
           }}>
             <div style={{ 
-              backgroundColor: "#10b981",
+              backgroundColor: isNewCustomerMode ? "#059669" : "#10b981",
               color: "white",
               width: "36px",
               height: "36px",
@@ -1000,19 +1251,19 @@ export default function CustomerPage() {
               fontSize: "1.1rem",
               flexShrink: 0
             }}>
-              <i className="fas fa-user-tie"></i>
+              {isNewCustomerMode ? <i className="fas fa-plus"></i> : <i className="fas fa-user-tie"></i>}
             </div>
             <div style={{ 
               fontSize: "1.3rem",
-              color: "#10b981",
+              color: isNewCustomerMode ? "#059669" : "#10b981",
               marginLeft: "12px",
               fontWeight: "600",
               flex: 1,
               minWidth: "200px"
             }}>
-              {selectedCustomer ? `Müşteri Bilgileri - ${selectedCustomer.customer_id}` : "Müşteri Bilgileri"}
+              {isNewCustomerMode ? "Yeni Müşteri Ekle" : selectedCustomer ? `Müşteri Bilgileri - ${selectedCustomer.customer_id}` : "Müşteri Bilgileri"}
             </div>
-            {selectedCustomer && (
+            {(selectedCustomer || isNewCustomerMode) && !isNewCustomerMode && (
               <button
                 onClick={handleSaveCustomerFields}
                 style={{
@@ -1036,7 +1287,7 @@ export default function CustomerPage() {
           </div>
           
           {/* MÜŞTERİ BİLGİLERİ - DÜZENLENEBİLİR ALANLAR */}
-          {selectedCustomer ? (
+          {selectedCustomer || isNewCustomerMode ? (
             <div style={{ 
               backgroundColor: "rgba(30, 41, 59, 0.3)",
               borderRadius: "8px",
@@ -1050,8 +1301,8 @@ export default function CustomerPage() {
                 fontWeight: "600",
                 marginBottom: "15px"
               }}>
-                <i className="fas fa-edit" style={{ marginRight: "8px", color: "#38bdf8" }}></i>
-                Müşteri Temel Bilgileri
+                <i className={`fas ${isNewCustomerMode ? 'fa-plus-circle' : 'fa-edit'}`} style={{ marginRight: "8px", color: isNewCustomerMode ? "#059669" : "#38bdf8" }}></i>
+                {isNewCustomerMode ? "Yeni Müşteri Temel Bilgileri" : "Müşteri Temel Bilgileri"}
               </h4>
               
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "15px" }}>
@@ -1066,13 +1317,14 @@ export default function CustomerPage() {
                     style={{
                       width: "100%",
                       padding: "10px 12px",
-                      backgroundColor: "rgba(30, 41, 59, 0.8)",
-                      border: "1px solid #38bdf8",
+                      backgroundColor: isNewCustomerMode ? "rgba(5, 150, 105, 0.1)" : "rgba(30, 41, 59, 0.8)",
+                      border: `1px solid ${isNewCustomerMode ? "#059669" : "#38bdf8"}`,
                       borderRadius: "6px",
                       color: "#f1f5f9",
                       fontSize: "0.9rem",
                       transition: "all 0.2s"
                     }}
+                    placeholder="Müşteri kodu girin"
                   />
                   <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "4px" }}>
                     Müşterinin benzersiz kodu
@@ -1089,13 +1341,14 @@ export default function CustomerPage() {
                     style={{
                       width: "100%",
                       padding: "10px 12px",
-                      backgroundColor: "rgba(30, 41, 59, 0.8)",
-                      border: "1px solid #38bdf8",
+                      backgroundColor: isNewCustomerMode ? "rgba(5, 150, 105, 0.1)" : "rgba(30, 41, 59, 0.8)",
+                      border: `1px solid ${isNewCustomerMode ? "#059669" : "#38bdf8"}`,
                       borderRadius: "6px",
                       color: "#f1f5f9",
                       fontSize: "0.9rem",
                       transition: "all 0.2s"
                     }}
+                    placeholder="Müşteri adı girin"
                   />
                   <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "4px" }}>
                     Müşterinin resmi adı
@@ -1103,7 +1356,7 @@ export default function CustomerPage() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.85rem" }}>
-                    İlişkilendirme No
+                    Vergi Kimlik No
                   </label>
                   <input
                     type="text"
@@ -1112,13 +1365,14 @@ export default function CustomerPage() {
                     style={{
                       width: "100%",
                       padding: "10px 12px",
-                      backgroundColor: "rgba(30, 41, 59, 0.8)",
-                      border: "1px solid #38bdf8",
+                      backgroundColor: isNewCustomerMode ? "rgba(5, 150, 105, 0.1)" : "rgba(30, 41, 59, 0.8)",
+                      border: `1px solid ${isNewCustomerMode ? "#059669" : "#38bdf8"}`,
                       borderRadius: "6px",
                       color: "#f1f5f9",
                       fontSize: "0.9rem",
                       transition: "all 0.2s"
                     }}
+                    placeholder="İsteğe bağlı"
                   />
                   <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "4px" }}>
                     İlişkilendirme numarası (isteğe bağlı)
@@ -1126,32 +1380,74 @@ export default function CustomerPage() {
                 </div>
               </div>
 
-              {/* Sil butonu */}
+              {/* Butonlar */}
               <div style={{ 
                 display: "flex", 
                 justifyContent: "flex-end",
                 marginTop: "15px",
                 paddingTop: "15px",
-                borderTop: "1px solid #334155"
+                borderTop: "1px solid #334155",
+                gap: "10px"
               }}>
-                <button
-                  onClick={() => handleDeleteCustomer(selectedCustomer.id)}
-                  style={{
-                    background: "#ef4444",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "8px 15px",
-                    fontSize: "0.85rem",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px"
-                  }}
-                >
-                  <i className="fas fa-trash"></i>
-                  <span>Müşteriyi Sil</span>
-                </button>
+                {isNewCustomerMode ? (
+                  <>
+                    <button
+                      onClick={handleSaveNewCustomer}
+                      style={{
+                        background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        padding: "8px 15px",
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px"
+                      }}
+                    >
+                      <i className="fas fa-check"></i>
+                      <span>Yeni Müşteriyi Kaydet</span>
+                    </button>
+                    <button
+                      onClick={handleCancelNewCustomer}
+                      style={{
+                        background: "#dc2626",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        padding: "8px 15px",
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px"
+                      }}
+                    >
+                      <i className="fas fa-times"></i>
+                      <span>İptal</span>
+                    </button>
+                  </>
+                ) : selectedCustomer && (
+                  <button
+                    onClick={() => handleDeleteCustomer(selectedCustomer.id)}
+                    style={{
+                      background: "#dc2626",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "8px 15px",
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    <i className="fas fa-trash"></i>
+                    <span>Müşteriyi Sil</span>
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -1170,7 +1466,7 @@ export default function CustomerPage() {
               alignItems: "center"
             }}>
               <i className="fas fa-users" style={{ fontSize: "2rem", marginBottom: "10px", color: "#64748b" }}></i>
-              <p>Düzenlemek için soldaki listeden bir müşteri seçin</p>
+              <p>Düzenlemek için soldaki listeden bir müşteri seçin veya yeni müşteri eklemek için 'Yeni Ekle' butonuna tıklayın</p>
             </div>
           )}
           
@@ -1181,13 +1477,26 @@ export default function CustomerPage() {
             padding: "8px 12px",
             backgroundColor: "rgba(30, 41, 59, 0.3)",
             borderRadius: "4px",
-            marginTop: "10px"
+            marginTop: "10px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "10px"
           }}>
-            <i className="fas fa-database" style={{ marginRight: "8px" }}></i>
-            <span>Toplam {customers.length} müşteri bulundu</span>
+            <div>
+              <i className="fas fa-database" style={{ marginRight: "8px" }}></i>
+              <span>Toplam {customers.length} müşteri bulundu</span>
+            </div>
             {loading && (
-              <span style={{ marginLeft: "15px" }}>
+              <span>
                 <i className="fas fa-spinner fa-spin"></i> Veriler güncelleniyor...
+              </span>
+            )}
+            {isNewCustomerMode && (
+              <span style={{ color: "#059669", fontWeight: "600" }}>
+                <i className="fas fa-plus-circle" style={{ marginRight: "4px" }}></i>
+                Yeni müşteri ekleniyor
               </span>
             )}
           </div>
@@ -1222,10 +1531,10 @@ export default function CustomerPage() {
                     padding: "12px",
                     background: "none",
                     border: "none",
-                    color: isActive ? "#1d4ed8" : "#64748b",
+                    color: isActive ? (isNewCustomerMode ? "#059669" : "#1d4ed8") : "#64748b",
                     cursor: "pointer",
                     fontWeight: "600",
-                    borderBottom: isActive ? "2px solid #2563eb" : "2px solid transparent",
+                    borderBottom: isActive ? `2px solid ${isNewCustomerMode ? "#059669" : "#2563eb"}` : "2px solid transparent",
                     backgroundColor: isActive ? "rgba(30, 41, 59, 0.8)" : "transparent",
                     fontSize: "0.85rem",
                     minWidth: "120px",
@@ -1249,10 +1558,13 @@ export default function CustomerPage() {
               <GeneralTab 
                 selectedCustomer={selectedCustomer} 
                 onFormDataChange={setGeneralTabFormData}
+                isNewCustomerMode={isNewCustomerMode}
+                newCustomerFormData={newCustomerFormData}
+                onNewCustomerFormDataChange={setNewCustomerFormData}
               />
             )}
-            {activeTab === "Address" && <AddressTab selectedCustomer={selectedCustomer} />}
-            {activeTab === "Contact" && <ContactTab selectedCustomer={selectedCustomer} />}
+            {activeTab === "Address" && <AddressTab selectedCustomer={selectedCustomer} isNewCustomerMode={isNewCustomerMode} />}
+            {activeTab === "Contact" && <ContactTab selectedCustomer={selectedCustomer} isNewCustomerMode={isNewCustomerMode} />}
           </div>
         </div>
       </div>

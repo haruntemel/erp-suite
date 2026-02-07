@@ -29,13 +29,35 @@ interface CompanyUpdateDto {
   rowversion: number;
 }
 
+
+interface CompanyCreateDto {
+  companyId: string;  
+  company: string;    
+  name: string;
+  associationNo?: string;
+  defaultLanguage?: string;
+  logotype?: string;
+  corporateForm?: string;
+  country?: string;
+  localizationCountry?: string;
+  createdBy: string;
+  rowversion: number;
+  rowkey: string;
+}
+
 // GeneralTab bileşeni
 const GeneralTab = ({ 
   selectedCompany, 
-  onFormDataChange 
+  onFormDataChange,
+  isNewCompanyMode,
+  newCompanyFormData,
+  onNewCompanyFormDataChange
 }: { 
   selectedCompany: Company | null;
   onFormDataChange?: (formData: any) => void;
+  isNewCompanyMode?: boolean;
+  newCompanyFormData?: any;
+  onNewCompanyFormDataChange?: (formData: any) => void;
 }) => {
   const [formData, setFormData] = useState({
     default_language: selectedCompany?.default_language || "tr",
@@ -47,7 +69,7 @@ const GeneralTab = ({
 
   // Seçili şirket değiştiğinde formData'yı güncelle
   useEffect(() => {
-    if (selectedCompany) {
+    if (selectedCompany && !isNewCompanyMode) {
       const newFormData = {
         default_language: selectedCompany.default_language || "tr",
         logotype: selectedCompany.logotype || "",
@@ -60,20 +82,31 @@ const GeneralTab = ({
         onFormDataChange(newFormData);
       }
     }
-  }, [selectedCompany, onFormDataChange]);
+  }, [selectedCompany, onFormDataChange, isNewCompanyMode]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    const newFormData = {
-      ...formData,
-      [name]: value
-    };
-    setFormData(newFormData);
     
-    if (onFormDataChange) {
-      onFormDataChange(newFormData);
+    if (isNewCompanyMode && onNewCompanyFormDataChange) {
+      const newFormData = {
+        ...newCompanyFormData,
+        [name]: value
+      };
+      onNewCompanyFormDataChange(newFormData);
+    } else {
+      const newFormData = {
+        ...formData,
+        [name]: value
+      };
+      setFormData(newFormData);
+      
+      if (onFormDataChange) {
+        onFormDataChange(newFormData);
+      }
     }
   };
+
+  const displayData = isNewCompanyMode ? newCompanyFormData : formData;
 
   return (
     <div style={{ padding: "15px 0", minHeight: "250px" }}>
@@ -82,7 +115,7 @@ const GeneralTab = ({
         gridTemplateColumns: "1fr", 
         gap: "15px" 
       }}>
-        {selectedCompany ? (
+        {selectedCompany || isNewCompanyMode ? (
           <>
             {/* İlk Satır */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
@@ -90,7 +123,7 @@ const GeneralTab = ({
                 <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Default Language</label>
                 <select
                   name="default_language"
-                  value={formData.default_language}
+                  value={displayData?.default_language || "tr"}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -113,7 +146,7 @@ const GeneralTab = ({
                 <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Corporate Form</label>
                 <select
                   name="corporate_form"
-                  value={formData.corporate_form}
+                  value={displayData?.corporate_form || ""}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -124,6 +157,7 @@ const GeneralTab = ({
                     fontSize: "0.9rem"
                   }}
                 >
+                  <option value="">Select Corporate Form</option>
                   <option value="as">Anonim Şirket (A.Ş.)</option>
                   <option value="ltd">Limited Şirket (Ltd. Şti.)</option>
                   <option value="joint">Kollektif Şirket</option>
@@ -141,7 +175,7 @@ const GeneralTab = ({
                 <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Country</label>
                 <select
                   name="country"
-                  value={formData.country}
+                  value={displayData?.country || "TR"}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -170,7 +204,7 @@ const GeneralTab = ({
                 <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Localization Country</label>
                 <select
                   name="localization_country"
-                  value={formData.localization_country}
+                  value={displayData?.localization_country || "TR"}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -204,7 +238,7 @@ const GeneralTab = ({
                 <input
                   type="text"
                   name="logotype"
-                  value={formData.logotype}
+                  value={displayData?.logotype || ""}
                   onChange={handleInputChange}
                   style={{
                     padding: "10px",
@@ -222,7 +256,7 @@ const GeneralTab = ({
             </div>
 
             {/* Logotype önizleme (eğer URL varsa) */}
-            {formData.logotype && (
+            {displayData?.logotype && (
               <div style={{ display: "flex", flexDirection: "column", marginTop: "10px" }}>
                 <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Logotype Preview</label>
                 <div style={{
@@ -236,7 +270,7 @@ const GeneralTab = ({
                   minHeight: "100px"
                 }}>
                   <img 
-                    src={formData.logotype} 
+                    src={displayData.logotype} 
                     alt="Company Logo" 
                     style={{
                       maxWidth: "150px",
@@ -276,10 +310,10 @@ const GeneralTab = ({
 };
 
 // AddressTab bileşeni
-const AddressTab = ({ selectedCompany }: { selectedCompany: Company | null }) => {
+const AddressTab = ({ selectedCompany, isNewCompanyMode }: { selectedCompany: Company | null; isNewCompanyMode?: boolean }) => {
   return (
     <div style={{ padding: "15px 0", minHeight: "250px" }}>
-      {selectedCompany ? (
+      {selectedCompany || isNewCompanyMode ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.9rem" }}>Adres</label>
@@ -339,6 +373,9 @@ export default function CompanyPage() {
   // SearchList'ten seçilen şirket state'i
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isSearchListVisible, setIsSearchListVisible] = useState(false);
+  
+  // Yeni şirket ekleme modu
+  const [isNewCompanyMode, setIsNewCompanyMode] = useState(false);
 
   // PostgreSQL'den gelen şirket verileri
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -347,6 +384,15 @@ export default function CompanyPage() {
 
   // GeneralTab form verileri
   const [generalTabFormData, setGeneralTabFormData] = useState<any>(null);
+  
+  // Yeni şirket form verileri
+  const [newCompanyFormData, setNewCompanyFormData] = useState({
+    default_language: "tr",
+    logotype: "",
+    corporate_form: "",
+    country: "TR",
+    localization_country: "TR"
+  });
 
   // Düzenlenen şirket bilgileri
   const [editingCompanyData, setEditingCompanyData] = useState({
@@ -361,14 +407,14 @@ export default function CompanyPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedCompany) {
+    if (selectedCompany && !isNewCompanyMode) {
       setEditingCompanyData({
         company: selectedCompany.company,
         name: selectedCompany.name,
         association_no: selectedCompany.association_no || ""
       });
     }
-  }, [selectedCompany]);
+  }, [selectedCompany, isNewCompanyMode]);
 
   const fetchCompanies = async () => {
     try {
@@ -425,11 +471,130 @@ export default function CompanyPage() {
         name: selected.name,
         association_no: selected.association_no || ""
       });
+      setIsNewCompanyMode(false);
     }
   };
 
   const handleToggleSearchList = () => {
     setIsSearchListVisible(!isSearchListVisible);
+  };
+
+  // Yeni şirket ekleme işlemi
+  const handleAddNewCompany = () => {
+    setIsNewCompanyMode(true);
+    setSelectedCompany(null);
+    setEditingCompanyData({
+      company: "",
+      name: "",
+      association_no: ""
+    });
+    setNewCompanyFormData({
+      default_language: "tr",
+      logotype: "",
+      corporate_form: "",
+      country: "TR",
+      localization_country: "TR"
+    });
+  };
+
+  // Yeni şirketi kaydetme
+const handleSaveNewCompany = async () => {
+  // Validasyon
+  if (!editingCompanyData.company.trim()) {
+    alert("Company Code alanı zorunludur!");
+    return;
+  }
+  
+  if (!editingCompanyData.name.trim()) {
+    alert("Company Name alanı zorunludur!");
+    return;
+  }
+
+  try {
+    const newCompany: CompanyCreateDto = {
+      companyId: editingCompanyData.company,
+      company: editingCompanyData.company, // Aynı değeri hem companyId hem company olarak gönder
+      name: editingCompanyData.name,
+      associationNo: editingCompanyData.association_no || undefined,
+      defaultLanguage: newCompanyFormData.default_language,
+      logotype: newCompanyFormData.logotype || undefined,
+      corporateForm: newCompanyFormData.corporate_form || undefined,
+      country: newCompanyFormData.country,
+      localizationCountry: newCompanyFormData.localization_country,
+      createdBy: "admin",
+      rowversion: 1,
+      rowkey: `company_${Date.now()}`
+    };
+
+    console.log("Gönderilen veri:", newCompany);
+
+    const response = await fetch('/api/company', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newCompany),
+    });
+
+      if (response.ok) {
+        const createdCompany = await response.json();
+        await fetchCompanies();
+        
+        // Yeni eklenen şirketi seç
+        const newCompanyData: Company = {
+          id: companies.length + 1,
+          company: createdCompany.companyId || createdCompany.company,
+          name: createdCompany.name,
+          association_no: createdCompany.associationNo,
+          default_language: createdCompany.defaultLanguage || "tr",
+          logotype: createdCompany.logotype || "",
+          corporate_form: createdCompany.corporateForm || "",
+          country: createdCompany.country || "TR",
+          localization_country: createdCompany.localizationCountry || "TR",
+          creation_date: new Date().toISOString(),
+          created_by: "admin",
+          rowversion: 1,
+          rowkey: createdCompany.rowkey || ""
+        };
+        
+        setSelectedCompany(newCompanyData);
+        setIsNewCompanyMode(false);
+        alert("Yeni şirket başarıyla eklendi!");
+      } else {
+        let errorMessage = "Şirket ekleme işlemi başarısız oldu";
+        
+        try {
+          const errorData = await response.json();
+          console.error("API hata detayı:", errorData);
+          
+          // Validation errors varsa göster
+          if (errorData.errors) {
+            const validationErrors = Object.values(errorData.errors).flat().join(', ');
+            errorMessage = `Validasyon hataları: ${validationErrors}`;
+          } else if (errorData.title || errorData.detail) {
+            errorMessage = `${errorData.title || 'Hata'}: ${errorData.detail || 'Bilinmeyen hata'}`;
+          }
+        } catch (parseError) {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+    } catch (err) {
+      console.error("Yeni şirket eklenirken hata:", err);
+      alert(err instanceof Error ? err.message : "Yeni şirket eklenirken bir hata oluştu!");
+    }
+  };
+
+  // Yeni şirket eklemeyi iptal et
+  const handleCancelNewCompany = () => {
+    setIsNewCompanyMode(false);
+    setSelectedCompany(null);
+    setEditingCompanyData({
+      company: "",
+      name: "",
+      association_no: ""
+    });
   };
 
   // Şirket silme
@@ -482,12 +647,12 @@ export default function CompanyPage() {
     try {
       const updateDto: CompanyUpdateDto = {
         name: editingCompanyData.name,
-        associationNo: editingCompanyData.association_no,
-        defaultLanguage: selectedCompany.default_language,
-        logotype: selectedCompany.logotype,
-        corporateForm: selectedCompany.corporate_form,
-        country: selectedCompany.country,
-        localizationCountry: selectedCompany.localization_country,
+        associationNo: editingCompanyData.association_no || undefined,
+        defaultLanguage: generalTabFormData?.default_language || selectedCompany.default_language,
+        logotype: generalTabFormData?.logotype || selectedCompany.logotype || undefined,
+        corporateForm: generalTabFormData?.corporate_form || selectedCompany.corporate_form || undefined,
+        country: generalTabFormData?.country || selectedCompany.country,
+        localizationCountry: generalTabFormData?.localization_country || selectedCompany.localization_country,
         rowversion: selectedCompany.rowversion || 1
       };
 
@@ -523,8 +688,14 @@ export default function CompanyPage() {
     }
   };
 
-  // Tüm değişiklikleri kaydet (hem GeneralTab hem company fields)
+  // Tüm değişiklikleri kaydet
   const handleSaveAll = async () => {
+    if (isNewCompanyMode) {
+      // Yeni şirket ekleme modundaysa yeni şirketi kaydet
+      await handleSaveNewCompany();
+      return;
+    }
+
     if (!selectedCompany) {
       alert("Lütfen önce bir şirket seçin!");
       return;
@@ -534,14 +705,16 @@ export default function CompanyPage() {
       // Company fields için updateDto
       const companyUpdateDto: CompanyUpdateDto = {
         name: editingCompanyData.name,
-        associationNo: editingCompanyData.association_no,
+        associationNo: editingCompanyData.association_no || undefined,
         defaultLanguage: generalTabFormData?.default_language || selectedCompany.default_language,
-        logotype: generalTabFormData?.logotype || selectedCompany.logotype,
-        corporateForm: generalTabFormData?.corporate_form || selectedCompany.corporate_form,
+        logotype: generalTabFormData?.logotype || selectedCompany.logotype || undefined,
+        corporateForm: generalTabFormData?.corporate_form || selectedCompany.corporate_form || undefined,
         country: generalTabFormData?.country || selectedCompany.country,
         localizationCountry: generalTabFormData?.localization_country || selectedCompany.localization_country,
         rowversion: selectedCompany.rowversion || 1
       };
+
+      console.log("Güncellenen veri:", companyUpdateDto);
 
       const response = await fetch(`/api/company/${editingCompanyData.company}`, {
         method: 'PUT',
@@ -713,6 +886,28 @@ export default function CompanyPage() {
               flexWrap: "wrap",
               justifyContent: "flex-end" 
             }}>
+              {/* Yeni Ekle Butonu */}
+              <button
+                onClick={handleAddNewCompany}
+                style={{
+                  background: "#059669",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "8px 12px",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  transition: "all 0.3s",
+                  flexShrink: 0
+                }}
+              >
+                <i className="fas fa-plus"></i>
+                <span>Yeni Ekle</span>
+              </button>
+              
               {/* SearchList toggle butonu */}
               <button
                 onClick={handleToggleSearchList}
@@ -751,9 +946,9 @@ export default function CompanyPage() {
               ) : (
                 <button
                   onClick={handleSaveAll}
-                  disabled={!selectedCompany}
+                  disabled={!selectedCompany && !isNewCompanyMode}
                   style={{
-                    background: selectedCompany 
+                    background: (selectedCompany || isNewCompanyMode)
                       ? "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)" 
                       : "#64748b",
                     color: "white",
@@ -761,16 +956,40 @@ export default function CompanyPage() {
                     borderRadius: "6px",
                     padding: "8px 15px",
                     fontSize: "0.85rem",
-                    cursor: selectedCompany ? "pointer" : "not-allowed",
+                    cursor: (selectedCompany || isNewCompanyMode) ? "pointer" : "not-allowed",
                     display: "flex",
                     alignItems: "center",
                     gap: "6px",
                     flexShrink: 0,
-                    opacity: selectedCompany ? 1 : 0.6
+                    opacity: (selectedCompany || isNewCompanyMode) ? 1 : 0.6
                   }}
                 >
                   <i className="fas fa-save"></i>
-                  <span>Kaydet</span>
+                  <span>{isNewCompanyMode ? "Yeni Şirketi Kaydet" : "Kaydet"}</span>
+                </button>
+              )}
+
+              {/* Yeni şirket modunda iptal butonu */}
+              {isNewCompanyMode && (
+                <button
+                  onClick={handleCancelNewCompany}
+                  style={{
+                    background: "#dc2626",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "8px 12px",
+                    fontSize: "0.8rem",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    transition: "all 0.3s",
+                    flexShrink: 0
+                  }}
+                >
+                  <i className="fas fa-times"></i>
+                  <span>İptal</span>
                 </button>
               )}
             </div>
@@ -783,7 +1002,7 @@ export default function CompanyPage() {
             padding: "12px",
             backgroundColor: "rgba(30, 41, 59, 0.5)",
             borderRadius: "6px",
-            borderLeft: selectedCompany ? "3px solid #10b981" : "3px solid #38bdf8",
+            borderLeft: isNewCompanyMode ? "3px solid #059669" : selectedCompany ? "3px solid #10b981" : "3px solid #38bdf8",
             fontSize: "0.85rem"
           }}>
             <div style={{ 
@@ -800,14 +1019,33 @@ export default function CompanyPage() {
                 ) : error ? (
                   <span style={{ color: "#ef4444" }}>Hata: {error}</span>
                 ) : companies.length === 0 ? (
-                  <span>Veritabanında şirket bulunamadı.</span>
+                  <span>Veritabanında şirket bulunamadı. Yeni şirket eklemek için "Yeni Ekle" butonuna tıklayın.</span>
+                ) : isNewCompanyMode ? (
+                  <span style={{ color: "#059669", fontWeight: "600" }}>
+                    <i className="fas fa-plus-circle" style={{ marginRight: "8px" }}></i>
+                    Yeni şirket ekliyorsunuz. Lütfen gerekli alanları doldurun.
+                  </span>
                 ) : selectedCompany ? (
                   `"${selectedCompany.company} - ${selectedCompany.name}" şirketinin bilgilerini düzenleyin.`
                 ) : (
-                  "Düzenlemek için soldaki listeden bir şirket seçin."
+                  "Düzenlemek için soldaki listeden bir şirket seçin veya yeni şirket eklemek için 'Yeni Ekle' butonuna tıklayın."
                 )}
               </div>
-              {selectedCompany && (
+              {isNewCompanyMode ? (
+                <div style={{ 
+                  backgroundColor: "rgba(5, 150, 105, 0.2)", 
+                  padding: "4px 8px", 
+                  borderRadius: "4px",
+                  fontSize: "0.8rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  flexShrink: 0
+                }}>
+                  <i className="fas fa-plus-circle" style={{ color: "#059669" }}></i>
+                  <span>Yeni Şirket Ekle</span>
+                </div>
+              ) : selectedCompany && (
                 <div style={{ 
                   backgroundColor: "rgba(16, 185, 129, 0.2)", 
                   padding: "4px 8px", 
@@ -848,7 +1086,7 @@ export default function CompanyPage() {
             gap: "10px"
           }}>
             <div style={{ 
-              backgroundColor: "#10b981",
+              backgroundColor: isNewCompanyMode ? "#059669" : "#10b981",
               color: "white",
               width: "36px",
               height: "36px",
@@ -859,19 +1097,19 @@ export default function CompanyPage() {
               fontSize: "1.1rem",
               flexShrink: 0
             }}>
-              <i className="fas fa-building"></i>
+              {isNewCompanyMode ? <i className="fas fa-plus"></i> : <i className="fas fa-building"></i>}
             </div>
             <div style={{ 
               fontSize: "1.3rem",
-              color: "#10b981",
+              color: isNewCompanyMode ? "#059669" : "#10b981",
               marginLeft: "12px",
               fontWeight: "600",
               flex: 1,
               minWidth: "200px"
             }}>
-              {selectedCompany ? `Şirket Bilgileri - ${selectedCompany.company}` : "Şirket Bilgileri"}
+              {isNewCompanyMode ? "Yeni Şirket Ekle" : selectedCompany ? `Şirket Bilgileri - ${selectedCompany.company}` : "Şirket Bilgileri"}
             </div>
-            {selectedCompany && (
+            {(selectedCompany || isNewCompanyMode) && !isNewCompanyMode && (
               <button
                 onClick={handleSaveCompanyFields}
                 style={{
@@ -895,7 +1133,7 @@ export default function CompanyPage() {
           </div>
           
           {/* ŞİRKET BİLGİLERİ - DÜZENLENEBİLİR ALANLAR */}
-          {selectedCompany ? (
+          {selectedCompany || isNewCompanyMode ? (
             <div style={{ 
               backgroundColor: "rgba(30, 41, 59, 0.3)",
               borderRadius: "8px",
@@ -909,8 +1147,8 @@ export default function CompanyPage() {
                 fontWeight: "600",
                 marginBottom: "15px"
               }}>
-                <i className="fas fa-edit" style={{ marginRight: "8px", color: "#38bdf8" }}></i>
-                Şirket Temel Bilgileri
+                <i className={`fas ${isNewCompanyMode ? 'fa-plus-circle' : 'fa-edit'}`} style={{ marginRight: "8px", color: isNewCompanyMode ? "#059669" : "#38bdf8" }}></i>
+                {isNewCompanyMode ? "Yeni Şirket Temel Bilgileri" : "Şirket Temel Bilgileri"}
               </h4>
               
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "15px" }}>
@@ -925,13 +1163,14 @@ export default function CompanyPage() {
                     style={{
                       width: "100%",
                       padding: "10px 12px",
-                      backgroundColor: "rgba(30, 41, 59, 0.8)",
-                      border: "1px solid #38bdf8",
+                      backgroundColor: isNewCompanyMode ? "rgba(5, 150, 105, 0.1)" : "rgba(30, 41, 59, 0.8)",
+                      border: `1px solid ${isNewCompanyMode ? "#059669" : "#38bdf8"}`,
                       borderRadius: "6px",
                       color: "#f1f5f9",
                       fontSize: "0.9rem",
                       transition: "all 0.2s"
                     }}
+                    placeholder="Şirket kodu girin"
                   />
                   <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "4px" }}>
                     Şirketin benzersiz kodu
@@ -948,13 +1187,14 @@ export default function CompanyPage() {
                     style={{
                       width: "100%",
                       padding: "10px 12px",
-                      backgroundColor: "rgba(30, 41, 59, 0.8)",
-                      border: "1px solid #38bdf8",
+                      backgroundColor: isNewCompanyMode ? "rgba(5, 150, 105, 0.1)" : "rgba(30, 41, 59, 0.8)",
+                      border: `1px solid ${isNewCompanyMode ? "#059669" : "#38bdf8"}`,
                       borderRadius: "6px",
                       color: "#f1f5f9",
                       fontSize: "0.9rem",
                       transition: "all 0.2s"
                     }}
+                    placeholder="Şirket adı girin"
                   />
                   <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "4px" }}>
                     Şirketin resmi adı
@@ -962,7 +1202,7 @@ export default function CompanyPage() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   <label style={{ marginBottom: "5px", color: "#f1f5f9", fontSize: "0.85rem" }}>
-                    Association No
+                    Vergi Kimlik Kodu
                   </label>
                   <input
                     type="text"
@@ -971,13 +1211,14 @@ export default function CompanyPage() {
                     style={{
                       width: "100%",
                       padding: "10px 12px",
-                      backgroundColor: "rgba(30, 41, 59, 0.8)",
-                      border: "1px solid #38bdf8",
+                      backgroundColor: isNewCompanyMode ? "rgba(5, 150, 105, 0.1)" : "rgba(30, 41, 59, 0.8)",
+                      border: `1px solid ${isNewCompanyMode ? "#059669" : "#38bdf8"}`,
                       borderRadius: "6px",
                       color: "#f1f5f9",
                       fontSize: "0.9rem",
                       transition: "all 0.2s"
                     }}
+                    placeholder="İsteğe bağlı"
                   />
                   <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "4px" }}>
                     İlişkilendirme numarası (isteğe bağlı)
@@ -985,32 +1226,74 @@ export default function CompanyPage() {
                 </div>
               </div>
 
-              {/* Sil butonu */}
+              {/* Butonlar */}
               <div style={{ 
                 display: "flex", 
                 justifyContent: "flex-end",
                 marginTop: "15px",
                 paddingTop: "15px",
-                borderTop: "1px solid #334155"
+                borderTop: "1px solid #334155",
+                gap: "10px"
               }}>
-                <button
-                  onClick={() => handleDeleteCompany(selectedCompany.id)}
-                  style={{
-                    background: "#ef4444",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "8px 15px",
-                    fontSize: "0.85rem",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px"
-                  }}
-                >
-                  <i className="fas fa-trash"></i>
-                  <span>Şirketi Sil</span>
-                </button>
+                {isNewCompanyMode ? (
+                  <>
+                    <button
+                      onClick={handleSaveNewCompany}
+                      style={{
+                        background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        padding: "8px 15px",
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px"
+                      }}
+                    >
+                      <i className="fas fa-check"></i>
+                      <span>Yeni Şirketi Kaydet</span>
+                    </button>
+                    <button
+                      onClick={handleCancelNewCompany}
+                      style={{
+                        background: "#dc2626",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        padding: "8px 15px",
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px"
+                      }}
+                    >
+                      <i className="fas fa-times"></i>
+                      <span>İptal</span>
+                    </button>
+                  </>
+                ) : selectedCompany && (
+                  <button
+                    onClick={() => handleDeleteCompany(selectedCompany.id)}
+                    style={{
+                      background: "#dc2626",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "8px 15px",
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    <i className="fas fa-trash"></i>
+                    <span>Şirketi Sil</span>
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -1029,7 +1312,7 @@ export default function CompanyPage() {
               alignItems: "center"
             }}>
               <i className="fas fa-building" style={{ fontSize: "2rem", marginBottom: "10px", color: "#64748b" }}></i>
-              <p>Düzenlemek için soldaki listeden bir şirket seçin</p>
+              <p>Düzenlemek için soldaki listeden bir şirket seçin veya yeni şirket eklemek için 'Yeni Ekle' butonuna tıklayın</p>
             </div>
           )}
           
@@ -1040,13 +1323,26 @@ export default function CompanyPage() {
             padding: "8px 12px",
             backgroundColor: "rgba(30, 41, 59, 0.3)",
             borderRadius: "4px",
-            marginTop: "10px"
+            marginTop: "10px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "10px"
           }}>
-            <i className="fas fa-database" style={{ marginRight: "8px" }}></i>
-            <span>Toplam {companies.length} şirket bulundu</span>
+            <div>
+              <i className="fas fa-database" style={{ marginRight: "8px" }}></i>
+              <span>Toplam {companies.length} şirket bulundu</span>
+            </div>
             {loading && (
-              <span style={{ marginLeft: "15px" }}>
+              <span>
                 <i className="fas fa-spinner fa-spin"></i> Veriler güncelleniyor...
+              </span>
+            )}
+            {isNewCompanyMode && (
+              <span style={{ color: "#059669", fontWeight: "600" }}>
+                <i className="fas fa-plus-circle" style={{ marginRight: "4px" }}></i>
+                Yeni şirket ekleniyor
               </span>
             )}
           </div>
@@ -1081,10 +1377,10 @@ export default function CompanyPage() {
                     padding: "12px",
                     background: "none",
                     border: "none",
-                    color: isActive ? "#1d4ed8" : "#64748b",
+                    color: isActive ? (isNewCompanyMode ? "#059669" : "#1d4ed8") : "#64748b",
                     cursor: "pointer",
                     fontWeight: "600",
-                    borderBottom: isActive ? "2px solid #2563eb" : "2px solid transparent",
+                    borderBottom: isActive ? `2px solid ${isNewCompanyMode ? "#059669" : "#2563eb"}` : "2px solid transparent",
                     backgroundColor: isActive ? "rgba(30, 41, 59, 0.8)" : "transparent",
                     fontSize: "0.85rem",
                     minWidth: "120px",
@@ -1107,9 +1403,12 @@ export default function CompanyPage() {
               <GeneralTab 
                 selectedCompany={selectedCompany} 
                 onFormDataChange={setGeneralTabFormData}
+                isNewCompanyMode={isNewCompanyMode}
+                newCompanyFormData={newCompanyFormData}
+                onNewCompanyFormDataChange={setNewCompanyFormData}
               />
             )}
-            {activeTab === "Address" && <AddressTab selectedCompany={selectedCompany} />}
+            {activeTab === "Address" && <AddressTab selectedCompany={selectedCompany} isNewCompanyMode={isNewCompanyMode} />}
           </div>
         </div>
       </div>
