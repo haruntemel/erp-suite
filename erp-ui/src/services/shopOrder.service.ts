@@ -11,7 +11,8 @@ import type {
   ShopMaterialAllocUpdateDto
 } from '../types/shopOrder.types';
 
-const API_BASE_URL = 'http://localhost:5217/api';
+/*const API_BASE_URL = 'http://localhost:5217/api';*/
+const API_BASE_URL = '/api';
 
 /**
  * API'den gelen veriyi frontend formatına dönüştürür
