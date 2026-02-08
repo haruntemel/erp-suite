@@ -38,8 +38,24 @@ interface CustomerOrderApiResponse {
   rowkey: string;
 }
 
-
-
+// Customer Interface
+interface CustomerInfo {
+  customerId: string;
+  name: string;
+  associationNo?: string;
+  defaultLanguage?: string;
+  corporateForm?: string;
+  country?: string;
+  partyType?: string;
+  category?: string;
+  checkLimit?: string;
+  limitControlType?: string;
+  identifierReference?: string;
+  rowversion: number;
+  rowkey: string;
+  creationDate?: string;
+  createdBy: string;
+}
 // Frontend'de kullanacağımız interface (PascalCase)
 interface CustomerOrder {
   id: number;
@@ -379,7 +395,11 @@ export default function CustomerOrderPage() {
   const [inventoryLoading, setInventoryLoading] = useState(false);
   const [searchForHead, setSearchForHead] = useState(false); // true: head için, false: line için
   const [searchForLineIndex, setSearchForLineIndex] = useState<number>(-1); // hangi satır için
-
+  // YENİ: Müşteri Arama States
+  const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  const [customers, setCustomers] = useState<CustomerInfo[]>([]);
+  const [customerLoading, setCustomerLoading] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerInfo | null>(null);	
   // YENİ: İş Emri State'leri
   const [showShopOrderModal, setShowShopOrderModal] = useState(false);
   const [selectedLineForShopOrder, setSelectedLineForShopOrder] = useState<CustomerOrderLine | null>(null);
@@ -1100,6 +1120,78 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
     setProdStructures([]);
   };
 
+   // YENİ: Müşterileri Ara
+  const searchCustomers = async (searchTerm: string = "") => {
+  try {
+    setCustomerLoading(true);
+    console.log("🔍 Müşteri aranıyor...", searchTerm);
+    
+    let url = "/api/customer";
+    if (searchTerm) {
+      url += `?searchTerm=${encodeURIComponent(searchTerm)}`;
+    }
+    
+    console.log("📡 API URL:", url);
+    
+    const response = await fetch(url);
+    
+    console.log("📊 API Response Status:", response.status);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log("✅ API'den gelen veri:", data);
+      console.log("📈 Müşteri sayısı:", data.length);
+      
+      // Veriyi kontrol et
+      if (Array.isArray(data)) {
+        setCustomers(data);
+        console.log("✅ Müşteriler state'e kaydedildi");
+      } else {
+        console.error("❌ API array döndürmüyor:", typeof data);
+        setCustomers([]);
+      }
+    } else {
+      const errorText = await response.text();
+      console.error("❌ API hatası:", response.status, errorText);
+      setCustomers([]);
+    }
+  } catch (err) {
+    console.error("❌ Müşteri arama hatası:", err);
+    setCustomers([]);
+  } finally {
+    setCustomerLoading(false);
+    console.log("🏁 Müşteri arama tamamlandı");
+  }
+};
+
+  // YENİ: Müşteri Seçimi
+const handleCustomerSelect = (customer: CustomerInfo) => {
+  setSelectedCustomer(customer);
+    
+    // Yeni sipariş oluşturuluyorsa müşteri numarasını ata
+    if (isCreatingNewOrder) {
+      setNewOrderData(prev => ({
+        ...prev,
+        customerNo: customer.customerId
+      }));
+    }
+    // Mevcut sipariş düzenleniyorsa müşteri numarasını ata
+    else if (editingOrder) {
+      setEditingOrder(prev => ({
+        ...prev!,
+        CustomerNo: customer.customerId
+      }));
+    }
+    
+    setShowCustomerSearch(false);
+  };
+
+  // YENİ: Müşteri Arama Modalını Aç
+  const openCustomerSearch = () => {
+  console.log("✅ Müşteri arama butonuna tıklandı");
+  setShowCustomerSearch(true);
+  searchCustomers("");
+};
   // Inventory Part Search Functions
   const searchInventoryParts = async (searchTerm: string = "") => {
     try {
@@ -1819,6 +1911,9 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
             <div><strong>Teslimat Tarihi:</strong> ${selectedOrder.WantedDeliveryDate ? new Date(selectedOrder.WantedDeliveryDate).toLocaleDateString('tr-TR') : 'Belirtilmemiş'}</div>
             <div><strong>Para Birimi:</strong> ${selectedOrder.CurrencyCode || 'TRY'}</div>
             <div><strong>Durum:</strong> ${selectedOrder.Rowstate}</div>
+            <div><strong>Koordinatör:</strong> ${selectedOrder.AuthorizeCode}</div>
+            <div><strong>Satış Personeli:</strong> ${selectedOrder.SalesmanCode}</div>
+            <div><strong>Satış Personeli:</strong> ${selectedOrder.PaidAmount}</div>
           </div>
           ${selectedOrder.NoteText ? `<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;"><strong>Notlar:</strong> ${selectedOrder.NoteText}</div>` : ''}
         </div>
@@ -2280,7 +2375,266 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
       </div>
     );
   };
+// YENİ: Müşteri Arama Modalı JSX
+const CustomerSearchModal = () => {
+    if (!showCustomerSearch) return null;
 
+    return (
+      <div style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        zIndex: 2000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <div style={{
+          backgroundColor: "#1e293b",
+          borderRadius: "12px",
+          padding: "20px",
+          width: "80%",
+          maxWidth: "800px",
+          maxHeight: "80vh",
+          overflow: "hidden",
+          border: "2px solid #10b981"
+        }}>
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "15px",
+            paddingBottom: "15px",
+            borderBottom: "1px solid #334155"
+          }}>
+            <h2 style={{ 
+              margin: 0, 
+              color: "#f1f5f9", 
+              fontSize: "1.2rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px"
+            }}>
+              <i className="fas fa-users" style={{ color: "#10b981" }}></i>
+              Müşteri Seçimi
+            </h2>
+            <button
+              onClick={() => setShowCustomerSearch(false)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#94a3b8",
+                cursor: "pointer",
+                fontSize: "1.2rem"
+              }}
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+
+          <div style={{ marginBottom: "15px" }}>
+            <div style={{
+              display: "flex",
+              gap: "10px",
+              marginBottom: "10px"
+            }}>
+              <input
+                type="text"
+                placeholder="Müşteri No veya Adı ile ara..."
+                onChange={(e) => searchCustomers(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  backgroundColor: "rgba(30, 41, 59, 0.8)",
+                  border: "1px solid #475569",
+                  borderRadius: "6px",
+                  color: "#f1f5f9"
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={{
+            maxHeight: "50vh",
+            overflowY: "auto",
+            borderRadius: "8px",
+            border: "1px solid #334155"
+          }}>
+            <table style={{ 
+              width: "100%", 
+              borderCollapse: "collapse" 
+            }}>
+              <thead style={{
+                backgroundColor: "#334155",
+                position: "sticky",
+                top: 0
+              }}>
+                <tr>
+                  <th style={{ 
+                    padding: "12px 15px", 
+                    textAlign: "left", 
+                    color: "#f1f5f9", 
+                    fontSize: "0.85rem",
+                    borderBottom: "1px solid #475569"
+                  }}>
+                    Müşteri No
+                  </th>
+                  <th style={{ 
+                    padding: "12px 15px", 
+                    textAlign: "left", 
+                    color: "#f1f5f9", 
+                    fontSize: "0.85rem",
+                    borderBottom: "1px solid #475569"
+                  }}>
+                    Müşteri Adı
+                  </th>
+                  <th style={{ 
+                    padding: "12px 15px", 
+                    textAlign: "left", 
+                    color: "#f1f5f9", 
+                    fontSize: "0.85rem",
+                    borderBottom: "1px solid #475569"
+                  }}>
+                    Vergi No
+                  </th>
+                  <th style={{ 
+                    padding: "12px 15px", 
+                    textAlign: "left", 
+                    color: "#f1f5f9", 
+                    fontSize: "0.85rem",
+                    borderBottom: "1px solid #475569"
+                  }}>
+                    Ülke
+                  </th>
+                  <th style={{ 
+                    padding: "12px 15px", 
+                    textAlign: "left", 
+                    color: "#f1f5f9", 
+                    fontSize: "0.85rem",
+                    borderBottom: "1px solid #475569"
+                  }}>
+                    İşlem
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {customerLoading ? (
+                  <tr>
+                    <td colSpan={5} style={{ 
+                      padding: "40px", 
+                      textAlign: "center", 
+                      color: "#94a3b8" 
+                    }}>
+                      <i className="fas fa-spinner fa-spin" style={{ marginRight: "10px" }}></i>
+                      Yükleniyor...
+                    </td>
+                  </tr>
+                ) : customers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ 
+                      padding: "40px", 
+                      textAlign: "center", 
+                      color: "#94a3b8" 
+                    }}>
+                      <i className="fas fa-user-times" style={{ marginRight: "10px" }}></i>
+                      Müşteri bulunamadı
+                    </td>
+                  </tr>
+                ) : (
+                  customers.map((customer) => (
+                    <tr key={customer.customerId}
+                      style={{
+                        borderBottom: "1px solid #334155",
+                        backgroundColor: "rgba(30, 41, 59, 0.5)"
+                      }}
+                    >
+                      <td style={{ 
+                        padding: "12px 15px", 
+                        color: "#f1f5f9",
+                        fontSize: "0.85rem"
+                      }}>
+                        {customer.customerId}
+                      </td>
+                      <td style={{ 
+                        padding: "12px 15px", 
+                        color: "#94a3b8",
+                        fontSize: "0.85rem"
+                      }}>
+                        {customer.name}
+                      </td>
+                      <td style={{ 
+                        padding: "12px 15px", 
+                        color: "#94a3b8",
+                        fontSize: "0.85rem"
+                      }}>
+                        {customer.associationNo || '-'}
+                      </td>
+                      <td style={{ 
+                        padding: "12px 15px", 
+                        color: "#94a3b8",
+                        fontSize: "0.85rem"
+                      }}>
+                        {customer.country || '-'}
+                      </td>
+                      <td style={{ 
+                        padding: "12px 15px",
+                        textAlign: "center"
+                      }}>
+                        <button
+                          onClick={() => handleCustomerSelect(customer)}
+                          style={{
+                            background: "#10b981",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            padding: "6px 12px",
+                            fontSize: "0.8rem",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "5px"
+                          }}
+                        >
+                          <i className="fas fa-check"></i>
+                          <span>Seç</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{
+            marginTop: "15px",
+            paddingTop: "15px",
+            borderTop: "1px solid #334155",
+            textAlign: "right"
+          }}>
+            <button
+              onClick={() => setShowCustomerSearch(false)}
+              style={{
+                background: "#64748b",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                padding: "8px 16px",
+                fontSize: "0.85rem",
+                cursor: "pointer"
+              }}
+            >
+              Kapat
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
   // YENİ SİPARİŞ OLUŞTURMA EKRANI
   if (isCreatingNewOrder) {
     const { grandTotal } = calculateNewOrderTotals();
@@ -2305,7 +2659,7 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
             icon="fas fa-shopping-cart"
           />
         )}
-
+ {showCustomerSearch && <CustomerSearchModal />}
         {/* Inventory Part Search Modal */}
         {showInventorySearch && (
           <div style={{
@@ -2744,18 +3098,64 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
                   placeholder="Örn: 01"
                 />
               </div>
-              <div>
+               <div>
                 <label style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "5px", display: "block" }}>
                   Müşteri No <span style={{ color: "#ef4444" }}>*</span>
                 </label>
-                <input
-                  type="text"
-                  value={newOrderData.customerNo}
-                  onChange={(e) => handleNewOrderDataChange('customerNo', e.target.value)}
-                  style={inputStyle}
-                  placeholder="Müşteri numarası girin"
-                />
-              </div>
+                <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                  <input
+                    type="text"
+                    value={newOrderData.customerNo}
+                    onChange={(e) => handleNewOrderDataChange('customerNo', e.target.value)}
+                    style={inputStyle}
+                    placeholder="Müşteri numarası girin"
+                  />
+                  <button
+                    onClick={openCustomerSearch}
+                    style={{
+                      background: "#10b981",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      padding: "10px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "42px",
+                      height: "42px",
+                      flexShrink: 0
+                    }}
+                    title="Müşteri Ara"
+                  >
+                    <i className="fas fa-search"></i>
+                  </button>
+                </div>
+               {/* Seçili Müşteriyi Göster */}
+  {newOrderData.customerNo && selectedCustomer && selectedCustomer.customerId === newOrderData.customerNo && (
+    <div style={{
+      marginTop: "8px",
+      padding: "8px",
+      backgroundColor: "rgba(16, 185, 129, 0.2)",
+      borderRadius: "6px",
+      borderLeft: "3px solid #10b981",
+      fontSize: "0.85rem",
+      color: "#f1f5f9"
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <i className="fas fa-check-circle" style={{ color: "#10b981" }}></i>
+        <div>
+          <div><strong>{selectedCustomer.name}</strong></div>
+          {selectedCustomer.associationNo && (
+            <div style={{ fontSize: "0.8rem", color: "#94a3b8" }}>
+              Vergi No: {selectedCustomer.associationNo}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )}
+</div>
               <div>
                 <label style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "5px", display: "block" }}>
                   Sipariş Tarihi
@@ -2800,6 +3200,30 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
                   onChange={(e) => handleNewOrderDataChange('customerPoNo', e.target.value || undefined)}
                   style={inputStyle}
                   placeholder="Müşteri sipariş numarası"
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "5px", display: "block" }}>
+                  Koordinatör
+                </label>
+                <input
+                  type="text"
+                  value={newOrderData.authorizeCode || ''}
+                  onChange={(e) => handleNewOrderDataChange('authorizeCode', e.target.value || undefined)}
+                  style={inputStyle}
+                  placeholder="Koordinatör"
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: "0.85rem", color: "#94a3b8", marginBottom: "5px", display: "block" }}>
+                  Satış Personeli
+                </label>
+                <input
+                  type="text"
+                  value={newOrderData.salesmanCode || ''}
+                  onChange={(e) => handleNewOrderDataChange('salesmanCode', e.target.value || undefined)}
+                  style={inputStyle}
+                  placeholder="Satış Personeli"
                 />
               </div>
             </div>
@@ -3224,7 +3648,8 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
           icon="fas fa-shopping-cart"
         />
       )}
-
+{/* Müşteri Arama Modalı */}
+      {showCustomerSearch && <CustomerSearchModal />}
       {/* Inventory Part Search Modal */}
       {showInventorySearch && (
         <div style={{
@@ -3847,7 +4272,13 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
                     type="text"
                     value={editingOrder.Company}
                     onChange={(e) => handleEditingOrderChange('Company', e.target.value)}
-                    style={inputStyle}
+                    style={{
+        ...inputStyle,
+        backgroundColor: "#334155", // Daha koyu arkaplan
+        color: "#94a3b8", // Daha soluk yazı rengi
+        cursor: "not-allowed" // İmleç değişimi
+      }}
+      disabled={true}
                   />
                 ) : (
                   <div style={{ 
@@ -3869,7 +4300,13 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
                     type="text"
                     value={editingOrder.OrderNo}
                     onChange={(e) => handleEditingOrderChange('OrderNo', e.target.value)}
-                    style={inputStyle}
+                    style={{
+        ...inputStyle,
+        backgroundColor: "#334155", // Daha koyu arkaplan
+        color: "#94a3b8", // Daha soluk yazı rengi
+        cursor: "not-allowed" // İmleç değişimi
+      }}
+      disabled={true}
                   />
                 ) : (
                   <div style={{ 
@@ -3891,7 +4328,13 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
                     type="text"
                     value={editingOrder.Contract}
                     onChange={(e) => handleEditingOrderChange('Contract', e.target.value)}
-                    style={inputStyle}
+                   style={{
+        ...inputStyle,
+        backgroundColor: "#334155", // Daha koyu arkaplan
+        color: "#94a3b8", // Daha soluk yazı rengi
+        cursor: "not-allowed" // İmleç değişimi
+      }}
+      disabled={true}
                   />
                 ) : (
                   <div style={{ 
@@ -3913,7 +4356,13 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
                     type="text"
                     value={editingOrder.CustomerNo}
                     onChange={(e) => handleEditingOrderChange('CustomerNo', e.target.value)}
-                    style={inputStyle}
+                    style={{
+        ...inputStyle,
+        backgroundColor: "#334155", // Daha koyu arkaplan
+        color: "#94a3b8", // Daha soluk yazı rengi
+        cursor: "not-allowed" // İmleç değişimi
+      }}
+      disabled={true}
                   />
                 ) : (
                   <div style={{ 
@@ -3935,7 +4384,13 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
                     type="date"
                     value={editingOrder.DateEntered}
                     onChange={(e) => handleEditingOrderChange('DateEntered', e.target.value)}
-                    style={inputStyle}
+                    style={{
+        ...inputStyle,
+        backgroundColor: "#334155", // Daha koyu arkaplan
+        color: "#94a3b8", // Daha soluk yazı rengi
+        cursor: "not-allowed" // İmleç değişimi
+      }}
+      disabled={true}
                   />
                 ) : (
                   <div style={{ 
@@ -4002,7 +4457,13 @@ const fetchProdStructures = async (contract: string, partNo: string, engChgLevel
                     type="text"
                     value={editingOrder.CurrencyCode || ''}
                     onChange={(e) => handleEditingOrderChange('CurrencyCode', e.target.value || undefined)}
-                    style={inputStyle}
+                    style={{
+        ...inputStyle,
+        backgroundColor: "#334155", // Daha koyu arkaplan
+        color: "#94a3b8", // Daha soluk yazı rengi
+        cursor: "not-allowed" // İmleç değişimi
+      }}
+      disabled={true}
                     placeholder="TRY"
                   />
                 ) : (
