@@ -207,6 +207,25 @@ export class ShopMaterialService {
   /**
    * Belirli bir siparişin malzemelerini getirir
    */
+  static async getMaterialDescription(contract: string, partNo: string): Promise<string> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/inventorypart/${encodeURIComponent(contract)}/${encodeURIComponent(partNo)}`
+      );
+      
+      if (!response.ok) {
+        console.error(`HTTP error! status: ${response.status} for ${contract}/${partNo}`);
+        return '';
+      }
+      
+      const data = await response.json();
+      return data.description || '';
+    } catch (err) {
+      console.error('Malzeme açıklaması alınamadı:', err);
+      return '';
+    }
+  }
+
   static async getMaterialsByOrder(contract: string, orderNo: string): Promise<ShopMaterialAlloc[]> {
     const response = await fetch(
       `${API_BASE_URL}/shopmaterialalloc/by-order/${encodeURIComponent(contract)}/${encodeURIComponent(orderNo)}`

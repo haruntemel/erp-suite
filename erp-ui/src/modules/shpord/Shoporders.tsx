@@ -5,7 +5,9 @@ import SearchList from "./../../components/SearchList";
 import { ChevronRightIcon, EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import type { ShopOrder, ShopMaterialAlloc } from "./../../types/shopOrder.types";
 import { ShopOrderService, ShopMaterialService } from "../../services/shopOrder.service";
-
+interface MaterialDescription {
+  [key: string]: string; // key: `${contract}_${partNo}`, value: açıklama
+}
 // Stil sabitleri
 const inputStyle = {
   padding: "10px 12px",
@@ -41,6 +43,8 @@ export default function ShopOrders() {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+   const [materialDescriptions, setMaterialDescriptions] = useState<MaterialDescription>({});
+  const [selectedMaterialDesc, setSelectedMaterialDesc] = useState<string>('');
 
   // Verileri yükle
   useEffect(() => {
@@ -294,6 +298,68 @@ export default function ShopOrders() {
     } catch (err) {
       console.error("Silme hatası:", err);
       alert(`Hata: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`);
+    }
+  };
+  // Seçili sipariş değiştiğinde malzeme açıklamasını al
+  useEffect(() => {
+    if (selectedOrder) {
+      fetchMaterialDescription(selectedOrder.contract, selectedOrder.partNo);
+    } else {
+      setSelectedMaterialDesc('');
+    }
+  }, [selectedOrder]);
+
+  // Malzemeler yüklendiğinde malzeme açıklamalarını al
+  useEffect(() => {
+    if (materials.length > 0) {
+      fetchMaterialsDescriptions(materials);
+    }
+  }, [materials]);
+
+  // Malzeme açıklamalarını almak için fonksiyonlar
+  const fetchMaterialDescription = async (contract: string, partNo: string) => {
+    try {
+      const key = `${contract}_${partNo}`;
+      if (materialDescriptions[key]) {
+        setSelectedMaterialDesc(materialDescriptions[key]);
+        return;
+      }
+
+      const description = await ShopMaterialService.getMaterialDescription(contract, partNo);
+      setMaterialDescriptions(prev => ({
+        ...prev,
+        [key]: description
+      }));
+      setSelectedMaterialDesc(description);
+    } catch (err) {
+      console.error('Malzeme açıklaması alınamadı:', err);
+      setSelectedMaterialDesc('');
+    }
+  };
+
+  const fetchMaterialsDescriptions = async (materials: ShopMaterialAlloc[]) => {
+    try {
+      const newDescriptions: MaterialDescription = { ...materialDescriptions };
+      
+      for (const material of materials) {
+        const key = `${material.contract}_${material.partNo}`;
+        if (!newDescriptions[key]) {
+          try {
+            const description = await ShopMaterialService.getMaterialDescription(
+              material.contract, 
+              material.partNo
+            );
+            newDescriptions[key] = description;
+          } catch (err) {
+            newDescriptions[key] = '';
+            console.error(`${material.partNo} açıklaması alınamadı:`, err);
+          }
+        }
+      }
+      
+      setMaterialDescriptions(newDescriptions);
+    } catch (err) {
+      console.error('Malzeme açıklamaları alınamadı:', err);
     }
   };
 
@@ -764,7 +830,21 @@ export default function ShopOrders() {
                   {editingOrder.partNo}
                 </div>
               </div>
-              
+               {/* MALZEME AÇIKLAMASI TEXTBOX'u */}
+            <div>
+              <label style={labelStyle}>Malzeme Açıklaması</label>
+              <div style={{ 
+                padding: "8px", 
+                backgroundColor: "rgba(30, 41, 59, 0.5)",
+                borderRadius: "4px",
+                color: "#f1f5f9",
+                minHeight: "35px",
+                display: "flex",
+                alignItems: "center"
+              }}>
+                {selectedMaterialDesc }
+              </div>
+            </div>
               <div>
                 <label style={labelStyle}>Kontrat</label>
                 <div style={{ 
@@ -898,147 +978,191 @@ export default function ShopOrders() {
                 ))}
               </div>
 
-              {activeTab === "Malzeme Tahsisleri" && (
+            {activeTab === "Malzeme Tahsisleri" && (
+  <div>
+    {editingMaterials.length > 0 ? (
+      <div style={{
+        background: "#1e293b",
+        borderRadius: "12px",
+        overflow: "hidden",
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+        border: "1px solid #334155",
+        marginBottom: "20px"
+      }}>
+        {/* Tablo Container */}
+        <div style={{
+          overflowX: "auto", // Sadece yatay kaydırma
+          minWidth: "900px" // Minimum genişlik
+        }}>
+          {/* Tablo başlıkları */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "80px 120px minmax(200px, 1fr) 100px 100px 100px 100px 100px",
+            backgroundColor: "#334155",
+            padding: "12px 15px",
+            borderBottom: "1px solid #475569",
+            fontSize: "0.8rem",
+            fontWeight: "600",
+            color: "#f1f5f9",
+            minWidth: "900px"
+          }}>
+            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Satır</div>
+            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Malzeme No</div>
+            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Malzeme Açıklaması</div>
+            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Operasyon No</div>
+            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Montaj Başına</div>
+            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Gerekli Miktar</div>
+            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Rezerve Miktar</div>
+            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Tüketilen Miktar</div>
+            
+          </div>
+
+          {editingMaterials.map((material, index) => {
+            const key = `${material.contract}_${material.partNo}`;
+            const materialDesc = materialDescriptions[key];
+            const qtyAssigned = material.qtyAssigned || 0;
+            const qtyRequired = material.qtyRequired || 0;
+            const isOverAssigned = qtyAssigned > qtyRequired;
+
+            return (
+              <div
+                key={index}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "80px 120px minmax(200px, 1fr) 100px 100px 100px 100px 100px",
+                  padding: "10px 15px",
+                  borderBottom: "1px solid #334155",
+                  fontSize: "0.85rem",
+                  color: "#f1f5f9",
+                  backgroundColor: index % 2 === 0 ? "rgba(30, 41, 59, 0.5)" : "rgba(30, 41, 59, 0.3)",
+                  alignItems: "center",
+                  minWidth: "900px"
+                }}
+              >
+                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {material.lineItemNo}
+                </div>
+                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {material.partNo}
+                </div>
+                
+                {/* AÇIKLAMA SÜTUNU - ÇOK SATIR GÖSTERİMİ */}
+                <div style={{
+                  overflow: "hidden",
+                  wordBreak: "break-word", // Uzun kelimeleri böler
+                  lineHeight: "1.4",
+                  maxHeight: "60px", // Maksimum yükseklik
+                  overflowY: "auto", // Çok uzunsa dikey kaydırma
+                  paddingRight: "5px",
+                  fontSize: "0.8rem"
+                }}>
+                  {materialDesc || '-'}
+                </div>
+                
+                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {material.operationNo || '-'}
+                </div>
+                
                 <div>
-                  {editingMaterials.length > 0 ? (
-                    <div style={{
-                      backgroundColor: "rgba(30, 41, 59, 0.3)",
-                      borderRadius: "8px",
-                      overflow: "hidden",
-                      border: "1px solid #334155"
-                    }}>
-                      <div style={{
-                        display: "grid",
-                        gridTemplateColumns: "60px 150px 100px 120px 120px 120px 120px",
-                        backgroundColor: "#334155",
-                        padding: "12px 15px",
-                        borderBottom: "1px solid #475569",
-                        fontSize: "0.8rem",
-                        fontWeight: "600",
-                        color: "#f1f5f9"
-                      }}>
-                        <div>Satır</div>
-                        <div>Malzeme</div>
-                        <div>Operasyon</div>
-                        <div>Parça Başına</div>
-                        <div>Rezerve</div>
-                        <div>Kullanılan</div>
-                        <div>Gerekli</div>
-                      </div>
-
-                      {editingMaterials.map((material, index) => {
-                        // Değerleri safe bir şekilde alalım
-                        const qtyAssigned = material.qtyAssigned || 0;
-                        const qtyRequired = material.qtyRequired || 0;
-                        const isOverAssigned = qtyAssigned > qtyRequired;
-
-                        return (
-                          <div
-                            key={index}
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: "60px 150px 100px 120px 120px 120px 120px",
-                              padding: "10px 15px",
-                              borderBottom: "1px solid #334155",
-                              fontSize: "0.85rem",
-                              color: "#f1f5f9",
-                              backgroundColor: index % 2 === 0 ? "rgba(30, 41, 59, 0.5)" : "rgba(30, 41, 59, 0.3)",
-                              alignItems: "center"
-                            }}
-                          >
-                            <div>{material.lineItemNo}</div>
-                            <div>{material.partNo}</div>
-                            <div>{material.operationNo || '-'}</div>
-                            <div>
-                              {isEditing ? (
-                                <input
-                                  type="number"
-                                  value={material.qtyPerAssembly || 1}
-                                  onChange={(e) => handleEditingMaterialChange(index, 'qtyPerAssembly', parseFloat(e.target.value) || 1)}
-                                  style={{
-                                    width: "100%",
-                                    padding: "6px 8px",
-                                    backgroundColor: "rgba(30, 41, 59, 0.8)",
-                                    border: "1px solid #475569",
-                                    borderRadius: "4px",
-                                    color: "#f1f5f9",
-                                    fontSize: "0.85rem"
-                                  }}
-                                  min="0"
-                                  step="0.01"
-                                />
-                              ) : (
-                                (material.qtyPerAssembly || 1).toFixed(2)
-                              )}
-                            </div>
-                            <div>
-                              {isEditing ? (
-                                <>
-                                  <input
-                                    type="number"
-                                    value={qtyAssigned}
-                                    onChange={(e) => handleEditingMaterialChange(index, 'qtyAssigned', parseFloat(e.target.value) || 0)}
-                                    style={{
-                                      width: "100%",
-                                      padding: "6px 8px",
-                                      backgroundColor: "rgba(30, 41, 59, 0.8)",
-                                      border: isOverAssigned ? "1px solid #ef4444" : "1px solid #10b981",
-                                      borderRadius: "4px",
-                                      color: isOverAssigned ? "#ef4444" : "#f1f5f9",
-                                      fontSize: "0.85rem"
-                                    }}
-                                    min="0"
-                                    max={qtyRequired}
-                                    step="0.01"
-                                    title={`Maksimum rezerve edilebilir miktar: ${qtyRequired}`}
-                                  />
-                                  {isOverAssigned && (
-                                    <div style={{
-                                      fontSize: "0.7rem",
-                                      color: "#ef4444",
-                                      marginTop: "2px"
-                                    }}>
-                                      Maks: {qtyRequired.toFixed(2)}
-                                    </div>
-                                  )}
-                                </>
-                              ) : (
-                                <>
-                                  <div style={{
-                                    color: isOverAssigned ? "#ef4444" : "#f1f5f9",
-                                    fontWeight: isOverAssigned ? "bold" : "normal"
-                                  }}>
-                                    {qtyAssigned.toFixed(2)}
-                                  </div>
-                                  {isOverAssigned && (
-                                    <div style={{
-                                      fontSize: "0.7rem",
-                                      color: "#ef4444",
-                                      marginTop: "2px"
-                                    }}>
-                                      (Gerekli: {qtyRequired.toFixed(2)})
-                                    </div>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                            <div>{(material.qtyIssued || 0).toFixed(2)}</div>
-                            <div>{qtyRequired.toFixed(2)}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      value={material.qtyPerAssembly || 1}
+                      onChange={(e) => handleEditingMaterialChange(index, 'qtyPerAssembly', parseFloat(e.target.value) || 1)}
+                      style={{
+                        width: "100%",
+                        padding: "6px 8px",
+                        backgroundColor: "rgba(30, 41, 59, 0.8)",
+                        border: "1px solid #475569",
+                        borderRadius: "4px",
+                        color: "#f1f5f9",
+                        fontSize: "0.85rem"
+                      }}
+                      min="0"
+                      step="0.01"
+                    />
                   ) : (
-                    <div style={{ 
-                      textAlign: "center", 
-                      padding: "40px", 
-                      color: "#94a3b8"
-                    }}>
-                      Malzeme bulunamadı
-                    </div>
+                    (material.qtyPerAssembly || 1).toFixed(2)
                   )}
                 </div>
-              )}
+                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {qtyRequired.toFixed(2)}
+                </div>
+                <div>
+                  {isEditing ? (
+                    <>
+                      <input
+                        type="number"
+                        value={qtyAssigned}
+                        onChange={(e) => handleEditingMaterialChange(index, 'qtyAssigned', parseFloat(e.target.value) || 0)}
+                        style={{
+                          width: "100%",
+                          padding: "6px 8px",
+                          backgroundColor: "rgba(30, 41, 59, 0.8)",
+                          border: isOverAssigned ? "1px solid #ef4444" : "1px solid #10b981",
+                          borderRadius: "4px",
+                          color: isOverAssigned ? "#ef4444" : "#f1f5f9",
+                          fontSize: "0.85rem"
+                        }}
+                        min="0"
+                        max={qtyRequired}
+                        step="0.01"
+                        title={`Maksimum rezerve edilebilir miktar: ${qtyRequired}`}
+                      />
+                      {isOverAssigned && (
+                        <div style={{
+                          fontSize: "0.7rem",
+                          color: "#ef4444",
+                          marginTop: "2px"
+                        }}>
+                          Maks: {qtyRequired.toFixed(2)}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div style={{
+                        color: isOverAssigned ? "#ef4444" : "#f1f5f9",
+                        fontWeight: isOverAssigned ? "bold" : "normal"
+                      }}>
+                        {qtyAssigned.toFixed(2)}
+                      </div>
+                      {isOverAssigned && (
+                        <div style={{
+                          fontSize: "0.7rem",
+                          color: "#ef4444",
+                          marginTop: "2px"
+                        }}>
+                          (Gerekli: {qtyRequired.toFixed(2)})
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+                
+                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {(material.qtyIssued || 0).toFixed(2)}
+                </div>
+                
+                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {qtyRequired.toFixed(2)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ) : (
+      <div style={{ 
+        textAlign: "center", 
+        padding: "40px", 
+        color: "#94a3b8"
+      }}>
+        Malzeme bulunamadı
+      </div>
+    )}
+  </div>
+)}
 
               {activeTab === "Notlar" && (
                 <div>
